@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING
     "macOS architectures for the Max external")
 
-project(s3g_clap_max VERSION 0.2.0 LANGUAGES CXX)
+project(s3g_clap_max VERSION 0.2.1 LANGUAGES CXX)
 
 if(APPLE)
   enable_language(OBJCXX)
@@ -72,6 +72,8 @@ if(BUILD_TESTING)
     host/s3g_clap_module.cpp
     host/s3g_clap_plugin_host.cpp)
   if(APPLE)
+    set_source_files_properties(tests/s3g_clap_host_smoke.cpp
+      PROPERTIES LANGUAGE OBJCXX)
     target_sources(s3g_clap_host_smoke PRIVATE
       source/externals/s3g_clap_tilde/s3g_clap_editor.mm)
   endif()

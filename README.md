@@ -48,6 +48,11 @@ Parameter and MIDI messages are delivered at sample offset zero of the next
 MSP vector. Plugin-produced events are reported as `paramchanged` and
 `midiout` messages.
 
+Loaded CLAP modules remain initialized and mapped until Max exits. This avoids
+unsafe Cocoa class unloading when a native editor leaves objects pending in
+Max's autorelease pool. Restart Max after rebuilding a CLAP plugin that has
+already been loaded during the current session.
+
 ## Build
 
 The build fetches pinned CLAP and `max-sdk-base` sources when local paths are

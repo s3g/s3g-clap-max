@@ -128,9 +128,22 @@ public:
 
 namespace {
 
-std::mutex gModuleRegistryMutex;
-std::unordered_map<std::string, std::weak_ptr<SharedClapModule>>
-    gModuleRegistry;
+struct ProcessModuleRegistry {
+    std::mutex mutex;
+    std::unordered_map<std::string, std::shared_ptr<SharedClapModule>> modules;
+};
+
+ProcessModuleRegistry& processModuleRegistry()
+{
+    // CLAP GUIs can leave Cocoa objects in Max's outer autorelease pool. If
+    // their bundle is unloaded when the last Max object closes, those objects
+    // can later reference unmapped Objective-C class metadata while the pool
+    // drains. Keep initialized modules mapped for the lifetime of Max; the OS
+    // reclaims them when the process exits. Allocating the registry itself for
+    // process lifetime also avoids unsafe static-destruction ordering.
+    static auto* registry = new ProcessModuleRegistry;
+    return *registry;
+}
 
 std::string normalizedPath(const std::string& path)
 {
@@ -144,12 +157,10 @@ std::shared_ptr<SharedClapModule> loadSharedModule(const std::string& path,
     std::string& error)
 {
     const std::string key = normalizedPath(path);
-    std::lock_guard<std::mutex> registryLock(gModuleRegistryMutex);
-    const auto existing = gModuleRegistry.find(key);
-    if (existing != gModuleRegistry.end()) {
-        if (auto shared = existing->second.lock()) return shared;
-        gModuleRegistry.erase(existing);
-    }
+    auto& registry = processModuleRegistry();
+    std::lock_guard<std::mutex> registryLock(registry.mutex);
+    const auto existing = registry.modules.find(key);
+    if (existing != registry.modules.end()) return existing->second;
 
     auto shared = std::make_shared<SharedClapModule>();
     shared->nativeHandle = loadNative(key, error);
@@ -180,7 +191,7 @@ std::shared_ptr<SharedClapModule> loadSharedModule(const std::string& path,
         return {};
     }
     shared->path = key;
-    gModuleRegistry[key] = shared;
+    registry.modules.emplace(key, shared);
     return shared;
 }
 

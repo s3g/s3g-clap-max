@@ -5,43 +5,50 @@
 #endif
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <string>
 #include <vector>
 
-int main(int argc, char** argv)
+namespace {
+
+constexpr uint32_t kMaximumTestChannels = 128;
+constexpr uint32_t kTestFrames = 64;
+
+int runSmoke(int argc, char** argv)
 {
     if (argc != 2) {
         std::cerr << "usage: s3g_clap_host_smoke /path/to/plugin.clap\n";
         return 2;
     }
 
-    s3g::max_host::ClapEngine engine(2, 2);
+    s3g::max_host::ClapEngine engine(
+        kMaximumTestChannels, kMaximumTestChannels);
     std::string error;
     if (!engine.open(argv[1], {}, error)) {
         std::cerr << "open failed: " << error << '\n';
         return 1;
     }
-    if (engine.outputChannels() == 0 || engine.outputChannels() > 2
-        || engine.inputChannels() > 2) {
+    if (engine.outputChannels() == 0
+        || engine.outputChannels() > kMaximumTestChannels
+        || engine.inputChannels() > kMaximumTestChannels) {
         std::cerr << "unexpected channel topology: "
                   << engine.inputChannels() << " in, "
                   << engine.outputChannels() << " out\n";
         return 1;
     }
-    if (!engine.activate(48000.0, 64, error)) {
+    if (!engine.activate(48000.0, kTestFrames, error)) {
         std::cerr << "activation failed: " << error << '\n';
         return 1;
     }
 
     // A CLAP entry is initialized once per loaded module, not once per Max
     // object. Keep a second instance alive to exercise the shared-module path.
-    s3g::max_host::ClapEngine secondInstance(2, 2);
+    s3g::max_host::ClapEngine secondInstance(
+        kMaximumTestChannels, kMaximumTestChannels);
     if (!secondInstance.open(argv[1], {}, error)
-        || !secondInstance.activate(48000.0, 64, error)) {
+        || !secondInstance.activate(48000.0, kTestFrames, error)) {
         std::cerr << "second instance failed: " << error << '\n';
         return 1;
     }
@@ -73,20 +80,22 @@ int main(int argc, char** argv)
         }
     }
 
-    std::array<std::array<double, 64>, 2> input {};
-    std::array<std::array<double, 64>, 2> output {};
-    input[0][0] = 0.25;
-    input[1][0] = -0.25;
-    std::array<double*, 2> inputPointers {
-        input[0].data(), input[1].data(),
-    };
-    std::array<double*, 2> outputPointers {
-        output[0].data(), output[1].data(),
-    };
+    std::vector<std::vector<double>> input(engine.inputChannels(),
+        std::vector<double>(kTestFrames, 0.0));
+    std::vector<std::vector<double>> output(engine.outputChannels(),
+        std::vector<double>(kTestFrames, 0.0));
+    if (!input.empty()) input.front().front() = 0.25;
+    if (input.size() > 1) input[1].front() = -0.25;
+    std::vector<double*> inputPointers;
+    std::vector<double*> outputPointers;
+    inputPointers.reserve(input.size());
+    outputPointers.reserve(output.size());
+    for (auto& channel : input) inputPointers.push_back(channel.data());
+    for (auto& channel : output) outputPointers.push_back(channel.data());
 
     for (int block = 0; block < 8; ++block) {
-        if (!engine.process(inputPointers.data(), 2, outputPointers.data(), 2,
-                64)) {
+        if (!engine.process(inputPointers.data(), engine.inputChannels(),
+                outputPointers.data(), engine.outputChannels(), kTestFrames)) {
             std::cerr << "processing failed at block " << block << '\n';
             return 1;
         }
@@ -97,7 +106,8 @@ int main(int argc, char** argv)
                 std::cerr << "non-finite audio output\n";
                 return 1;
             }
-        for (auto& channel : input) channel.fill(0.0);
+        for (auto& channel : input)
+            std::fill(channel.begin(), channel.end(), 0.0);
     }
 
     std::vector<uint8_t> state;
@@ -107,9 +117,33 @@ int main(int argc, char** argv)
             return 1;
         }
     }
+
+    // Closing the final instances after exercising a Cocoa editor used to
+    // unload the plugin bundle before the surrounding autorelease pool was
+    // drained. Reopen it here to verify process-lifetime module retention.
+    secondInstance.close();
+    engine.close();
+    if (!engine.open(argv[1], {}, error)) {
+        std::cerr << "reopen after final close failed: " << error << '\n';
+        return 1;
+    }
+
     std::cout << "loaded " << engine.pluginName() << " ("
               << engine.pluginId() << "), " << engine.inputChannels()
               << " in, " << engine.outputChannels() << " out, "
               << engine.parameters().size() << " parameters\n";
     return 0;
+}
+
+} // namespace
+
+int main(int argc, char** argv)
+{
+#if defined(__APPLE__)
+    @autoreleasepool {
+        return runSmoke(argc, argv);
+    }
+#else
+    return runSmoke(argc, argv);
+#endif
 }
