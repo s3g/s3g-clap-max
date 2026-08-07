@@ -17,9 +17,15 @@ stage_dir="$(mktemp -d "${TMPDIR:-/tmp}/s3g-clap-max-release.XXXXXX")"
 trap 'rm -rf "$stage_dir"' EXIT
 mkdir -p "$stage_dir/s3g-clap-max"
 cp -R "$repo_dir/package/." "$stage_dir/s3g-clap-max/"
+cp "$repo_dir/README.md" "$stage_dir/s3g-clap-max/README.md"
+cp "$repo_dir/RELEASE_NOTES.md" "$stage_dir/s3g-clap-max/RELEASE_NOTES.md"
+cp "$repo_dir/LICENSE" "$stage_dir/s3g-clap-max/LICENSE"
+cp "$repo_dir/THIRD_PARTY_NOTICES.md" \
+  "$stage_dir/s3g-clap-max/THIRD_PARTY_NOTICES.md"
+xattr -cr "$stage_dir/s3g-clap-max"
 
 archive="$repo_dir/dist/s3g-clap-max-${version}-macos-universal.zip"
-ditto -c -k --sequesterRsrc --keepParent \
+ditto -c -k --keepParent \
   "$stage_dir/s3g-clap-max" "$archive"
 
 echo "Created release archive: $archive"
