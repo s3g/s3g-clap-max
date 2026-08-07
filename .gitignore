@@ -1,0 +1,9 @@
+build*/
+_deps/
+dist/
+package/externals/
+*.xcodeproj
+*.xcworkspace
+*.mxo
+*.mxe64
+.DS_Store
