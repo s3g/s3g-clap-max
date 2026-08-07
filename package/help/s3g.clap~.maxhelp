@@ -77,6 +77,14 @@
       },
       {
         "box": {
+          "id": "openname",
+          "maxclass": "message",
+          "text": "open \"s3g Ambi Encoder Stochastic\"",
+          "patching_rect": [505.0, 100.0, 245.0, 22.0]
+        }
+      },
+      {
+        "box": {
           "id": "noise",
           "maxclass": "newobj",
           "text": "noise~",
@@ -127,8 +135,8 @@
         "box": {
           "id": "messages",
           "maxclass": "comment",
-          "linecount": 10,
-          "text": "Messages:\nopen [path] [plugin-id]\neditor [1] / editor 0\nclose / status / getplugins\ngetparams / getparam <1-based-index>\nparam <index> <plain-value>\nparamid <clap-id> <plain-value>\nmidievent [port] <status> <data1> <data2>\nstatewrite <path> / stateread <path>\n\nThe rightmost outlet reports loaded, params, paraminfo, paramsdone, paramvalue, paramchanged, midiout, editor, and error messages.",
+          "linecount": 11,
+          "text": "Messages:\nopen [path-or-name] [plugin-id]\ngetpaths / getplugins\neditor [1] / editor 0\nclose / status\ngetparams / getparam <1-based-index>\nparam <index> <plain-value>\nparamid <clap-id> <plain-value>\nmidievent [port] <status> <data1> <data2>\nstatewrite <path> / stateread <path>\n\nQuoted names search CLAP_PATH and standard CLAP locations. The rightmost outlet reports loaded, clappath, params, paraminfo, paramsdone, paramvalue, paramchanged, midiout, editor, and error messages.",
           "patching_rect": [350.0, 165.0, 480.0, 250.0]
         }
       }
@@ -140,6 +148,7 @@
       {"patchline": {"source": ["setparam", 0], "destination": ["clap", 0]}},
       {"patchline": {"source": ["midi", 0], "destination": ["clap", 0]}},
       {"patchline": {"source": ["editor", 0], "destination": ["clap", 0]}},
+      {"patchline": {"source": ["openname", 0], "destination": ["clap", 0]}},
       {"patchline": {"source": ["noise", 0], "destination": ["gainin", 0]}},
       {"patchline": {"source": ["gainin", 0], "destination": ["clap", 0]}},
       {"patchline": {"source": ["gainin", 0], "destination": ["clap", 1]}},

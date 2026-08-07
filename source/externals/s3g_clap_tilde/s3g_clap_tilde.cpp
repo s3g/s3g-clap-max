@@ -3,6 +3,7 @@
 #include "ext_path.h"
 #include "z_dsp.h"
 
+#include "s3g_clap_discovery.h"
 #include "s3g_clap_engine.h"
 #if defined(__APPLE__)
 #include "s3g_clap_bundle_picker.h"
@@ -12,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <mutex>
@@ -248,7 +250,21 @@ void openPlugin(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     std::string path;
     std::string requestedId;
     if (argc > 0 && atom_gettype(argv) == A_SYM) {
-        path = absolutePath(atom_getsym(argv));
+        t_symbol* referenceSymbol = atom_getsym(argv);
+        std::string reference = referenceSymbol && referenceSymbol->s_name
+            ? referenceSymbol->s_name : "";
+        const std::string maxResolved = absolutePath(referenceSymbol);
+        std::error_code filesystemError;
+        if (!maxResolved.empty()
+            && std::filesystem::exists(maxResolved, filesystemError)
+            && !filesystemError)
+            reference = maxResolved;
+        std::string resolutionError;
+        if (!s3g::max_host::resolveClapBundle(reference, path,
+                resolutionError)) {
+            emitError(object, resolutionError);
+            return;
+        }
         if (argc > 1 && atom_gettype(argv + 1) == A_SYM)
             requestedId = atom_getsym(argv + 1)->s_name;
     } else {
@@ -292,6 +308,20 @@ void openPlugin(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     } catch (const std::exception& exception) {
         emitError(object, exception.what());
     }
+}
+
+void outputSearchPaths(MaxClap* object)
+{
+    const auto paths = s3g::max_host::clapSearchPaths();
+    for (size_t index = 0; index < paths.size(); ++index) {
+        t_atom atoms[2];
+        atom_setlong(atoms, static_cast<t_atom_long>(index + 1));
+        atom_setsym(atoms + 1, gensym(paths[index].c_str()));
+        emit(object, "clappath", 2, atoms);
+    }
+    t_atom count;
+    atom_setlong(&count, static_cast<t_atom_long>(paths.size()));
+    emit(object, "clappathsdone", 1, &count);
 }
 
 void closePlugin(MaxClap* object)
@@ -600,6 +630,8 @@ extern "C" void ext_main(void*)
     class_addmethod(klass, reinterpret_cast<method>(closePlugin), "close", 0);
     class_addmethod(klass, reinterpret_cast<method>(outputPluginList),
         "getplugins", 0);
+    class_addmethod(klass, reinterpret_cast<method>(outputSearchPaths),
+        "getpaths", 0);
     class_addmethod(klass, reinterpret_cast<method>(outputParameterList),
         "getparams", 0);
     class_addmethod(klass, reinterpret_cast<method>(editorMessage), "editor",

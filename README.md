@@ -28,8 +28,11 @@ output.
 ### Messages
 
 - `open` shows a native macOS picker that accepts `.clap` bundles.
-- `open <absolute-.clap-path> [plugin-id]` loads a bundle and optional factory
-  plugin ID. Without an ID, the first descriptor is selected.
+- `open <path-or-name> [plugin-id]` loads a bundle and optional factory plugin
+  ID. A quoted display name such as `open "s3g Ambi Encoder Stochastic"` is
+  resolved through `CLAP_PATH` and the standard CLAP locations. Without an ID,
+  the first descriptor is selected.
+- `getpaths` reports the active CLAP search roots as `clappath` messages.
 - `close`, `status`, and `getplugins` manage and inspect the loaded bundle.
 - `getparams` outputs `params <count>`, one `paraminfo` message per parameter,
   and `paramsdone <count>`. Each `paraminfo` message contains `<index> <id>
@@ -47,6 +50,21 @@ output.
 Parameter and MIDI messages are delivered at sample offset zero of the next
 MSP vector. Plugin-produced events are reported as `paramchanged` and
 `midiout` messages.
+
+The plugin can also be loaded when the Max object is created. Quote names that
+contain spaces:
+
+```max
+[s3g.clap~ 0 64 "s3g Ambi Encoder Stochastic"]
+```
+
+Direct paths take priority. Name discovery searches `CLAP_PATH` entries first,
+then `~/Library/Audio/Plug-Ins/CLAP` and
+`/Library/Audio/Plug-Ins/CLAP` on macOS. It matches bundle filenames, native
+bundle display names, and bundle identifiers without loading plugin
+executables. Case, spaces, underscores, hyphens, and punctuation are ignored.
+A unique substring such as `"Encoder Stochastic"` is accepted; ambiguous
+matches produce an error with candidate paths.
 
 Loaded CLAP modules remain initialized and mapped until Max exits. This avoids
 unsafe Cocoa class unloading when a native editor leaves objects pending in
@@ -72,7 +90,9 @@ For offline or repeatable local builds:
 ```
 
 To exercise the generic host against a known plugin during `ctest`, also pass
-`-DS3G_CLAP_MAX_TEST_PLUGIN=/absolute/path/to/plugin.clap`.
+`-DS3G_CLAP_MAX_TEST_PLUGIN=/absolute/path/to/plugin.clap`. Add
+`-DS3G_CLAP_MAX_TEST_NAME="Plugin Display Name"` to test human-readable name
+resolution.
 
 ## Development install
 

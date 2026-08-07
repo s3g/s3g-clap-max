@@ -1,3 +1,4 @@
+#include "s3g_clap_discovery.h"
 #include "s3g_clap_engine.h"
 #if defined(__APPLE__)
 #include "s3g_clap_editor.h"
@@ -5,10 +6,14 @@
 #endif
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -16,12 +21,143 @@ namespace {
 constexpr uint32_t kMaximumTestChannels = 128;
 constexpr uint32_t kTestFrames = 64;
 
+void setClapPathEnvironment(const std::string* value)
+{
+#if defined(_WIN32)
+    _putenv_s("CLAP_PATH", value ? value->c_str() : "");
+#else
+    if (value) setenv("CLAP_PATH", value->c_str(), 1);
+    else unsetenv("CLAP_PATH");
+#endif
+}
+
+class ScopedClapPath {
+public:
+    explicit ScopedClapPath(const std::string& value)
+    {
+        if (const char* existing = std::getenv("CLAP_PATH")) {
+            previous_ = existing;
+            hadPrevious_ = true;
+        }
+        setClapPathEnvironment(&value);
+    }
+
+    ~ScopedClapPath()
+    {
+        setClapPathEnvironment(hadPrevious_ ? &previous_ : nullptr);
+    }
+
+private:
+    std::string previous_;
+    bool hadPrevious_ = false;
+};
+
+class TemporaryTree {
+public:
+    explicit TemporaryTree(std::filesystem::path path)
+        : path_(std::move(path))
+    {
+    }
+
+    ~TemporaryTree()
+    {
+        std::error_code error;
+        std::filesystem::remove_all(path_, error);
+    }
+
+private:
+    std::filesystem::path path_;
+};
+
+bool verifyDiscoveryRules()
+{
+    namespace fs = std::filesystem;
+    const auto token = std::chrono::steady_clock::now()
+        .time_since_epoch().count();
+    const fs::path root = fs::temp_directory_path()
+        / ("s3g-clap-max-discovery-" + std::to_string(token));
+    TemporaryTree cleanup(root);
+    std::error_code filesystemError;
+    const fs::path unique = root
+        / "s3g_clap_max_discovery_fixture.clap";
+    fs::create_directories(unique, filesystemError);
+    if (filesystemError) {
+        std::cerr << "could not create discovery fixture: "
+                  << filesystemError.message() << '\n';
+        return false;
+    }
+
+#if defined(_WIN32)
+    constexpr char separator = ';';
+#else
+    constexpr char separator = ':';
+#endif
+    std::string searchPath = root.string();
+    if (const char* existing = std::getenv("CLAP_PATH");
+        existing && existing[0] != '\0')
+        searchPath += separator + std::string(existing);
+    ScopedClapPath environment(searchPath);
+
+    std::string resolved;
+    std::string error;
+    if (!s3g::max_host::resolveClapBundle(
+            "s3g clap max discovery fixture", resolved, error)
+        || fs::weakly_canonical(resolved) != fs::weakly_canonical(unique)) {
+        std::cerr << "CLAP_PATH fixture resolution failed: " << error << '\n';
+        return false;
+    }
+
+    fs::create_directories(root / "s3g_clap_max_ambiguous_alpha.clap",
+        filesystemError);
+    fs::create_directories(root / "s3g_clap_max_ambiguous_beta.clap",
+        filesystemError);
+    if (filesystemError) {
+        std::cerr << "could not create ambiguity fixtures: "
+                  << filesystemError.message() << '\n';
+        return false;
+    }
+    if (s3g::max_host::resolveClapBundle(
+            "s3g clap max ambiguous", resolved, error)
+        || error.find("ambiguous CLAP name") == std::string::npos) {
+        std::cerr << "ambiguous discovery was not rejected: " << error
+                  << '\n';
+        return false;
+    }
+    return true;
+}
+
 int runSmoke(int argc, char** argv)
 {
-    if (argc != 2) {
-        std::cerr << "usage: s3g_clap_host_smoke /path/to/plugin.clap\n";
+    if (argc < 2 || argc > 3) {
+        std::cerr << "usage: s3g_clap_host_smoke /path/to/plugin.clap "
+                     "[plugin-name]\n";
         return 2;
     }
+
+    if (!verifyDiscoveryRules()) return 1;
+
+    const std::string expectedPath = std::filesystem::weakly_canonical(
+        argv[1]).string();
+    const auto verifyResolution = [&](const std::string& reference) {
+        std::string resolved;
+        std::string resolutionError;
+        if (!s3g::max_host::resolveClapBundle(reference, resolved,
+                resolutionError)) {
+            std::cerr << "discovery failed for \"" << reference << "\": "
+                      << resolutionError << '\n';
+            return false;
+        }
+        if (std::filesystem::weakly_canonical(resolved).string()
+            != expectedPath) {
+            std::cerr << "discovery resolved \"" << reference << "\" to "
+                      << resolved << " instead of " << expectedPath << '\n';
+            return false;
+        }
+        return true;
+    };
+    if (!verifyResolution(std::filesystem::path(argv[1]).stem().string())
+        || (argc == 3 && !verifyResolution(argv[2])))
+        return 1;
 
     s3g::max_host::ClapEngine engine(
         kMaximumTestChannels, kMaximumTestChannels);

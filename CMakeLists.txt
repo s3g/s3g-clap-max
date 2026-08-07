@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING
     "macOS architectures for the Max external")
 
-project(s3g_clap_max VERSION 0.2.1 LANGUAGES CXX)
+project(s3g_clap_max VERSION 0.3.0 LANGUAGES CXX)
 
 if(APPLE)
   enable_language(OBJCXX)
@@ -68,6 +68,7 @@ add_subdirectory(source/externals/s3g_clap_tilde)
 if(BUILD_TESTING)
   add_executable(s3g_clap_host_smoke
     tests/s3g_clap_host_smoke.cpp
+    host/s3g_clap_discovery.cpp
     host/s3g_clap_engine.cpp
     host/s3g_clap_module.cpp
     host/s3g_clap_plugin_host.cpp)
@@ -91,8 +92,18 @@ if(BUILD_TESTING)
 
   set(S3G_CLAP_MAX_TEST_PLUGIN "" CACHE PATH
       "Optional CLAP bundle used by the host smoke test")
+  set(S3G_CLAP_MAX_TEST_NAME "" CACHE STRING
+      "Optional human-readable name used by the discovery smoke test")
   if(S3G_CLAP_MAX_TEST_PLUGIN)
-    add_test(NAME s3g_clap_host_smoke
-      COMMAND s3g_clap_host_smoke "${S3G_CLAP_MAX_TEST_PLUGIN}")
+    set(S3G_CLAP_MAX_TEST_COMMAND
+      s3g_clap_host_smoke "${S3G_CLAP_MAX_TEST_PLUGIN}")
+    if(S3G_CLAP_MAX_TEST_NAME)
+      list(APPEND S3G_CLAP_MAX_TEST_COMMAND "${S3G_CLAP_MAX_TEST_NAME}")
+    endif()
+    add_test(NAME s3g_clap_host_smoke COMMAND ${S3G_CLAP_MAX_TEST_COMMAND})
+    get_filename_component(S3G_CLAP_MAX_TEST_ROOT
+      "${S3G_CLAP_MAX_TEST_PLUGIN}" DIRECTORY)
+    set_tests_properties(s3g_clap_host_smoke PROPERTIES
+      ENVIRONMENT "CLAP_PATH=${S3G_CLAP_MAX_TEST_ROOT}")
   endif()
 endif()

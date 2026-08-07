@@ -10,6 +10,7 @@ set(${PROJECT_NAME}_EXTERN_OUTPUT_NAME "s3g.clap~" CACHE STRING "" FORCE)
 
 add_library(${PROJECT_NAME} MODULE
   s3g_clap_tilde.cpp
+  ../../../host/s3g_clap_discovery.cpp
   ../../../host/s3g_clap_engine.cpp
   ../../../host/s3g_clap_module.cpp
   ../../../host/s3g_clap_plugin_host.cpp)
