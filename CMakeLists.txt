@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING
     "macOS architectures for the Max external")
 
-project(s3g_clap_max VERSION 0.4.0 LANGUAGES CXX)
+project(s3g_clap_max VERSION 0.4.1 LANGUAGES CXX)
 
 if(APPLE)
   enable_language(OBJCXX)

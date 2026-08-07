@@ -18,7 +18,6 @@
 
 namespace {
 
-constexpr uint32_t kMaximumTestChannels = 128;
 constexpr uint32_t kTestFrames = 64;
 
 void setClapPathEnvironment(const std::string* value)
@@ -159,16 +158,13 @@ int runSmoke(int argc, char** argv)
         || (argc == 3 && !verifyResolution(argv[2])))
         return 1;
 
-    s3g::max_host::ClapEngine engine(
-        kMaximumTestChannels, kMaximumTestChannels);
+    s3g::max_host::ClapEngine engine;
     std::string error;
     if (!engine.open(argv[1], {}, error)) {
         std::cerr << "open failed: " << error << '\n';
         return 1;
     }
-    if (engine.outputChannels() == 0
-        || engine.outputChannels() > kMaximumTestChannels
-        || engine.inputChannels() > kMaximumTestChannels) {
+    if (engine.outputChannels() == 0) {
         std::cerr << "unexpected channel topology: "
                   << engine.inputChannels() << " in, "
                   << engine.outputChannels() << " out\n";
@@ -181,8 +177,7 @@ int runSmoke(int argc, char** argv)
 
     // A CLAP entry is initialized once per loaded module, not once per Max
     // object. Keep a second instance alive to exercise the shared-module path.
-    s3g::max_host::ClapEngine secondInstance(
-        kMaximumTestChannels, kMaximumTestChannels);
+    s3g::max_host::ClapEngine secondInstance;
     if (!secondInstance.open(argv[1], {}, error)
         || !secondInstance.activate(48000.0, kTestFrames, error)) {
         std::cerr << "second instance failed: " << error << '\n';
@@ -262,6 +257,29 @@ int runSmoke(int argc, char** argv)
                 return 1;
             }
     }
+
+    const uint32_t visibleOutputs = std::min<uint32_t>(
+        16, engine.outputChannels());
+    std::vector<std::vector<double>> narrowOutput(visibleOutputs,
+        std::vector<double>(kTestFrames, 0.0));
+    std::vector<double*> narrowOutputPointers;
+    narrowOutputPointers.reserve(narrowOutput.size());
+    for (auto& channel : narrowOutput)
+        narrowOutputPointers.push_back(channel.data());
+    const uint32_t visibleInputs = std::min<uint32_t>(
+        3, engine.inputChannels());
+    if (!engine.process(inputPointers.data(), visibleInputs,
+            narrowOutputPointers.data(), visibleOutputs, kTestFrames)) {
+        std::cerr << "narrow visible-channel processing failed\n";
+        return 1;
+    }
+    for (const auto& channel : narrowOutput)
+        if (!std::all_of(channel.begin(), channel.end(), [](double value) {
+                return std::isfinite(value);
+            })) {
+            std::cerr << "non-finite narrow-channel audio output\n";
+            return 1;
+        }
 
     std::vector<uint8_t> state;
     if (engine.saveState(state)) {

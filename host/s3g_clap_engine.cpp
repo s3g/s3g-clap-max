@@ -4,10 +4,11 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
-#include <sstream>
 
 namespace s3g::max_host {
 namespace {
+
+constexpr uint32_t kMaximumHostedChannels = 1024;
 
 std::string safeString(const char* value)
 {
@@ -16,8 +17,7 @@ std::string safeString(const char* value)
 
 } // namespace
 
-ClapEngine::ClapEngine(uint32_t maximumInputs, uint32_t maximumOutputs)
-    : maximumInputs_(maximumInputs), maximumOutputs_(maximumOutputs)
+ClapEngine::ClapEngine()
 {
     pendingEvents_.reserve(kMaximumEvents);
 }
@@ -131,24 +131,9 @@ bool ClapEngine::configurePorts(std::string& error)
         error = "plugin reported invalid CLAP audio ports";
         return false;
     }
-    if (inputChannels_ > maximumInputs_) {
-        std::ostringstream message;
-        message << "plugin needs " << inputChannels_
-                << " input channels, but this s3g.clap~ has "
-                << maximumInputs_ << "; recreate it as [s3g.clap~ "
-                << inputChannels_ << ' '
-                << std::max(outputChannels_, maximumOutputs_) << ']';
-        error = message.str();
-        return false;
-    }
-    if (outputChannels_ > maximumOutputs_) {
-        std::ostringstream message;
-        message << "plugin needs " << outputChannels_
-                << " output channels, but this s3g.clap~ has "
-                << maximumOutputs_ << "; recreate it as [s3g.clap~ "
-                << std::max(inputChannels_, maximumInputs_) << ' '
-                << outputChannels_ << ']';
-        error = message.str();
+    if (inputChannels_ > kMaximumHostedChannels
+        || outputChannels_ > kMaximumHostedChannels) {
+        error = "plugin exceeds the 1024-channel CLAP host safety limit";
         return false;
     }
 
@@ -357,10 +342,15 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
         buffer.constant_mask = 0;
         if (useDoublePrecision_) {
             for (uint32_t channel = 0; channel < buffer.channel_count;
-                 ++channel, ++flatInput)
-                inputDoublePointers_[port][channel] =
-                    inputs && flatInput < inputCount && inputs[flatInput]
-                    ? inputs[flatInput] : inputDoubleStorage_[flatInput].data();
+                 ++channel, ++flatInput) {
+                if (inputs && flatInput < inputCount && inputs[flatInput]) {
+                    inputDoublePointers_[port][channel] = inputs[flatInput];
+                } else {
+                    auto& silence = inputDoubleStorage_[flatInput];
+                    std::fill(silence.begin(), silence.begin() + frames, 0.0);
+                    inputDoublePointers_[port][channel] = silence.data();
+                }
+            }
             buffer.data64 = inputDoublePointers_[port].data();
             buffer.data32 = nullptr;
         } else {

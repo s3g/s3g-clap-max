@@ -35,7 +35,7 @@ struct ClapOutputEvent {
 
 class ClapEngine {
 public:
-    ClapEngine(uint32_t maximumInputs, uint32_t maximumOutputs);
+    ClapEngine();
     ~ClapEngine();
 
     ClapEngine(const ClapEngine&) = delete;
@@ -137,8 +137,6 @@ private:
     static constexpr uint32_t kMaximumEvents = 256;
     static constexpr uint32_t kOutputQueueSize = 512;
 
-    uint32_t maximumInputs_ = 0;
-    uint32_t maximumOutputs_ = 0;
     uint32_t inputChannels_ = 0;
     uint32_t outputChannels_ = 0;
     uint32_t maximumFrames_ = 0;

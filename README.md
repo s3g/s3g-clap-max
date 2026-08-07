@@ -13,17 +13,18 @@ s3g projects:
 
 ## Use
 
-Create the object with fixed maximum channel counts:
+Create the object with fixed Max-visible channel counts:
 
 ```max
 [s3g.clap~ 2 2]
 ```
 
-The first argument is the number of signal inputs and the second is the number
-of signal outputs. CLAP ports are flattened in their reported order. A plugin
-must fit within those counts; unused Max outputs are cleared. The final outlet
-reports status, plugin metadata, parameter data, parameter changes, and MIDI
-output.
+The first argument is the number of signal channels supplied by Max and the
+second is the number returned to Max. CLAP ports are flattened in their
+reported order. If a plugin is wider, undisplayed input channels receive
+silence and output channels beyond the requested width are discarded. If it
+is narrower, unused Max outputs are cleared. The final outlet reports status,
+plugin metadata, parameter data, parameter changes, and MIDI output.
 
 Add the construction-time `@mc 1` attribute to present those channels as one
 Max multichannel inlet and one multichannel outlet:
@@ -32,13 +33,16 @@ Max multichannel inlet and one multichannel outlet:
 [s3g.clap~ 16 16 @mc 1]
 ```
 
-The two arguments still set the maximum input and output channel counts. A
-zero count omits that signal inlet or outlet, so an output-only instrument can
-be created as:
+The two arguments set the MC signal widths. A zero count omits that signal
+inlet or outlet. For example, the first 16 channels of a fixed 64-output
+ambisonic plugin can be exposed as 3OA without declaring all 64 channels:
 
 ```max
-[s3g.clap~ 0 64 "s3g Ambi Encoder Stochastic" @mc 1]
+[s3g.clap~ 0 16 "s3g Ambi Encoder Stochastic" @mc 1]
 ```
+
+An incoming MC signal wider than the first argument is truncated; one with
+fewer channels is zero-padded before it reaches the plugin.
 
 Recreate the object to switch between MC and discrete mode. The rightmost
 status outlet remains a standard Max message outlet in both modes.
@@ -73,7 +77,7 @@ The plugin can also be loaded when the Max object is created. Quote names that
 contain spaces:
 
 ```max
-[s3g.clap~ 0 64 "s3g Ambi Encoder Stochastic" @mc 1]
+[s3g.clap~ 0 16 "s3g Ambi Encoder Stochastic" @mc 1]
 ```
 
 Direct paths take priority. Name discovery searches `CLAP_PATH` entries first,

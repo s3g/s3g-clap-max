@@ -38,8 +38,7 @@ struct MaxClap {
 
 struct Implementation {
     Implementation(MaxClap* owner, uint32_t inputs, uint32_t outputs)
-        : owner(owner), inputCount(inputs), outputCount(outputs),
-          engine(inputs, outputs)
+        : owner(owner), inputCount(inputs), outputCount(outputs)
     {
     }
 
@@ -225,9 +224,15 @@ void perform64(MaxClap* object, t_object*, double** inputs, long inputCount,
         return;
     }
 
-    const bool ok = implementation->engine.process(inputs,
-        static_cast<uint32_t>(inputCount), outputs,
-        static_cast<uint32_t>(outputCount), static_cast<uint32_t>(frames));
+    const auto visibleInputs = static_cast<uint32_t>(std::min<long>(
+        inputCount, implementation->inputCount));
+    const auto visibleOutputs = static_cast<uint32_t>(std::min<long>(
+        outputCount, implementation->outputCount));
+    const bool ok = implementation->engine.process(inputs, visibleInputs,
+        outputs, visibleOutputs, static_cast<uint32_t>(frames));
+    for (long channel = visibleOutputs; channel < outputCount; ++channel)
+        if (outputs[channel])
+            std::fill(outputs[channel], outputs[channel] + frames, 0.0);
     if (!ok && implementation->engine.isActive())
         implementation->processError.store(true, std::memory_order_release);
     if (implementation->engine.hasOutputEvents()

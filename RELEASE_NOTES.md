@@ -1,5 +1,35 @@
 # s3g-clap-max release notes
 
+## v0.4.1 — 2026-08-07
+
+This release makes the object channel arguments describe only the channels
+visible in Max, rather than requiring them to cover the plugin's full static
+CLAP port width.
+
+### Changed
+
+- Host plugins whose reported CLAP input or output width exceeds the object
+  arguments.
+- Supply silence to hidden plugin input channels and discard hidden plugin
+  output channels.
+- Limit an incoming MC signal to the requested visible input width and
+  zero-pad it when fewer channels arrive.
+- Allow a fixed 64-output ambisonic plugin to expose only its first 16 channels
+  for 3OA:
+
+  ```max
+  [s3g.clap~ 0 16 "s3g Ambi Encoder Stochastic" @mc 1]
+  ```
+
+The full CLAP-reported input and output counts remain available in the
+`loaded` status message.
+
+### Verification
+
+- Encoder Stochastic processes through a 16-channel visible output while its
+  CLAP port continues to report 64 channels.
+- Array HPF 16 passes silent, partial-width input and narrowed-output checks.
+
 ## v0.4.0 — 2026-08-07
 
 This release adds native Max multichannel-signal topology while retaining the
@@ -90,7 +120,7 @@ pending Objective-C objects. The fix was verified with the 64-output
 
 ## Installation
 
-1. Unzip `s3g-clap-max-0.4.0-macos-universal.zip`.
+1. Unzip `s3g-clap-max-0.4.1-macos-universal.zip`.
 2. Place the resulting `s3g-clap-max` folder in
    `~/Documents/Max 9/Packages/`.
 3. Restart Max.

@@ -24,7 +24,7 @@
         "box": {
           "id": "note",
           "maxclass": "comment",
-          "text": "Create with fixed input/output channel counts. Add @mc 1 for one multichannel inlet and outlet.",
+          "text": "Arguments set the channels visible in Max; wider plugin channels are silenced/discarded. Add @mc 1 for MC I/O.",
           "patching_rect": [30.0, 55.0, 650.0, 22.0]
         }
       },
@@ -152,7 +152,7 @@
         "box": {
           "id": "mcnote",
           "maxclass": "comment",
-          "text": "MC mode: one 2-channel inlet, one 2-channel outlet, then the message outlet. Recreate the object to change @mc.",
+          "text": "MC mode: one 2-channel inlet, one 2-channel outlet, then the message outlet. Wider plugins are allowed; recreate the object to change @mc.",
           "patching_rect": [520.0, 450.0, 330.0, 42.0]
         }
       }
