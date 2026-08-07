@@ -24,7 +24,7 @@
         "box": {
           "id": "note",
           "maxclass": "comment",
-          "text": "Create with fixed input/output channel counts. CLAP ports are flattened in port order.",
+          "text": "Create with fixed input/output channel counts. Add @mc 1 for one multichannel inlet and outlet.",
           "patching_rect": [30.0, 55.0, 650.0, 22.0]
         }
       },
@@ -138,6 +138,22 @@
           "linecount": 11,
           "text": "Messages:\nopen [path-or-name] [plugin-id]\ngetpaths / getplugins\neditor [1] / editor 0\nclose / status\ngetparams / getparam <1-based-index>\nparam <index> <plain-value>\nparamid <clap-id> <plain-value>\nmidievent [port] <status> <data1> <data2>\nstatewrite <path> / stateread <path>\n\nQuoted names search CLAP_PATH and standard CLAP locations. The rightmost outlet reports loaded, clappath, params, paraminfo, paramsdone, paramvalue, paramchanged, midiout, editor, and error messages.",
           "patching_rect": [350.0, 165.0, 480.0, 250.0]
+        }
+      },
+      {
+        "box": {
+          "id": "mcexample",
+          "maxclass": "newobj",
+          "text": "s3g.clap~ 2 2 @mc 1",
+          "patching_rect": [350.0, 450.0, 155.0, 22.0]
+        }
+      },
+      {
+        "box": {
+          "id": "mcnote",
+          "maxclass": "comment",
+          "text": "MC mode: one 2-channel inlet, one 2-channel outlet, then the message outlet. Recreate the object to change @mc.",
+          "patching_rect": [520.0, 450.0, 330.0, 42.0]
         }
       }
     ],

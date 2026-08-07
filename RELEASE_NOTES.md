@@ -1,5 +1,36 @@
 # s3g-clap-max release notes
 
+## v0.4.0 — 2026-08-07
+
+This release adds native Max multichannel-signal topology while retaining the
+discrete topology and all prior CLAP host features.
+
+### Added
+
+- Add `@mc 1` to expose one MC signal inlet and one MC signal outlet.
+- Keep the first two object arguments as the maximum flattened CLAP input and
+  output channel counts in both modes.
+- Support output-only MC instruments such as:
+
+  ```max
+  [s3g.clap~ 0 64 "s3g Ambi Encoder Stochastic" @mc 1]
+  ```
+
+- Zero-pad missing MC input channels before passing buffers to 64-bit CLAP
+  processors.
+- Keep the rightmost status outlet as a standard message outlet in MC mode.
+
+`mc` is a construction-time attribute. Recreate the object to switch between
+MC and discrete topology.
+
+### Verification
+
+- The external builds as a universal arm64/x86_64 Max bundle.
+- Encoder Stochastic passes discovery, processor, parameter, native-editor,
+  final-instance close, module-reuse, and autorelease-pool shutdown checks.
+- Array HPF 16 passes 16-input/16-output processing with all MC input channels
+  absent, verifying safe silent-input padding.
+
 ## v0.3.0 — 2026-08-07
 
 This release adds automatic CLAP discovery while retaining all v0.2.1 host
@@ -59,7 +90,7 @@ pending Objective-C objects. The fix was verified with the 64-output
 
 ## Installation
 
-1. Unzip `s3g-clap-max-0.3.0-macos-universal.zip`.
+1. Unzip `s3g-clap-max-0.4.0-macos-universal.zip`.
 2. Place the resulting `s3g-clap-max` folder in
    `~/Documents/Max 9/Packages/`.
 3. Restart Max.

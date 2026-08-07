@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -32,6 +33,7 @@ struct MaxClap {
     void* statusOutlet = nullptr;
     void* deferred = nullptr;
     struct Implementation* implementation = nullptr;
+    long mc = 0;
 };
 
 struct Implementation {
@@ -55,6 +57,19 @@ struct Implementation {
 };
 
 t_class* gClass = nullptr;
+
+long attributeLong(long argc, t_atom* argv, const char* name, long fallback)
+{
+    if (!argv || !name) return fallback;
+    for (long index = 0; index < argc - 1; ++index) {
+        if (atom_gettype(argv + index) != A_SYM) continue;
+        const auto* symbol = atom_getsym(argv + index);
+        if (symbol && symbol->s_name && symbol->s_name[0] == '@'
+            && std::strcmp(symbol->s_name + 1, name) == 0)
+            return atom_getlong(argv + index + 1);
+    }
+    return fallback;
+}
 
 void emit(MaxClap* object, const char* selector, long count, t_atom* atoms)
 {
@@ -555,14 +570,47 @@ void assist(MaxClap* object, void*, long message, long argument, char* text)
     const auto* implementation = object ? object->implementation : nullptr;
     if (!implementation) return;
     if (message == ASSIST_INLET) {
-        snprintf_zero(text, 256, "Signal input %ld; CLAP control messages",
-            argument + 1);
-    } else if (static_cast<uint32_t>(argument)
+        if (object->mc && implementation->inputCount > 0) {
+            snprintf_zero(text, 256,
+                "MC CLAP signal input (%u channels); control messages",
+                implementation->inputCount);
+        } else if (implementation->inputCount > 0) {
+            snprintf_zero(text, 256,
+                "Signal input %ld; CLAP control messages", argument + 1);
+        } else {
+            snprintf_zero(text, 256, "CLAP control messages (no audio input)");
+        }
+    } else if (object->mc && implementation->outputCount > 0
+        && argument == 0) {
+        snprintf_zero(text, 256, "MC CLAP signal output (%u channels)",
+            implementation->outputCount);
+    } else if (!object->mc && static_cast<uint32_t>(argument)
         < implementation->outputCount) {
         snprintf_zero(text, 256, "CLAP signal output %ld", argument + 1);
     } else {
         snprintf_zero(text, 256, "CLAP status, parameter, and MIDI messages");
     }
+}
+
+long multichannelOutputs(MaxClap* object, long index)
+{
+    const auto* implementation = object ? object->implementation : nullptr;
+    return object && object->mc && implementation && index == 0
+        ? static_cast<long>(implementation->outputCount) : 0;
+}
+
+long inputChanged(MaxClap*, long, long) { return false; }
+
+t_max_err setMcAttribute(MaxClap* object, void*, long argc, t_atom* argv)
+{
+    const long requested = argc > 0 && argv && atom_getlong(argv) != 0 ? 1 : 0;
+    if (object && object->implementation && requested != object->mc) {
+        object_warn(reinterpret_cast<t_object*>(object),
+            "mc is construction-time only; recreate object to change MC mode");
+        return MAX_ERR_NONE;
+    }
+    if (object) object->mc = requested;
+    return MAX_ERR_NONE;
 }
 
 void freeObject(MaxClap* object)
@@ -586,19 +634,30 @@ void* newObject(t_symbol*, long argc, t_atom* argv)
     object->statusOutlet = nullptr;
     object->deferred = nullptr;
     object->implementation = nullptr;
+    object->mc = attributeLong(argc, argv, "mc", 0) != 0 ? 1 : 0;
+
+    const long positionalCount = attr_args_offset(
+        static_cast<short>(argc), argv);
 
     long inputs = kDefaultInputs;
     long outputs = kDefaultOutputs;
-    if (argc > 0 && atom_gettype(argv) == A_LONG)
+    if (positionalCount > 0 && atom_gettype(argv) == A_LONG)
         inputs = std::clamp<long>(atom_getlong(argv), 0, kMaximumChannels);
-    if (argc > 1 && atom_gettype(argv + 1) == A_LONG)
+    if (positionalCount > 1 && atom_gettype(argv + 1) == A_LONG)
         outputs = std::clamp<long>(atom_getlong(argv + 1), 0,
             kMaximumChannels);
 
-    dsp_setup(reinterpret_cast<t_pxobject*>(object), inputs);
     object->statusOutlet = outlet_new(object, nullptr);
-    for (long channel = outputs; channel > 0; --channel)
-        outlet_new(object, "signal");
+    if (object->mc) {
+        dsp_setup(reinterpret_cast<t_pxobject*>(object), inputs > 0 ? 1 : 0);
+        object->object.z_misc |= Z_NO_INPLACE;
+        if (inputs > 0) object->object.z_misc |= Z_MC_INLETS;
+        if (outputs > 0) outlet_new(object, "multichannelsignal");
+    } else {
+        dsp_setup(reinterpret_cast<t_pxobject*>(object), inputs);
+        for (long channel = outputs; channel > 0; --channel)
+            outlet_new(object, "signal");
+    }
     object->implementation = new (std::nothrow) Implementation(object,
         static_cast<uint32_t>(inputs), static_cast<uint32_t>(outputs));
     if (!object->implementation) {
@@ -607,9 +666,10 @@ void* newObject(t_symbol*, long argc, t_atom* argv)
         return object;
     }
     object->deferred = qelem_new(object, reinterpret_cast<method>(deferredTick));
+    attr_args_process(object, static_cast<short>(argc), argv);
 
-    if (argc > 2 && atom_gettype(argv + 2) == A_SYM)
-        openPlugin(object, gensym("open"), argc - 2, argv + 2);
+    if (positionalCount > 2 && atom_gettype(argv + 2) == A_SYM)
+        openPlugin(object, gensym("open"), positionalCount - 2, argv + 2);
     return object;
 }
 
@@ -625,6 +685,10 @@ extern "C" void ext_main(void*)
         0);
     class_addmethod(klass, reinterpret_cast<method>(assist), "assist", A_CANT,
         0);
+    class_addmethod(klass, reinterpret_cast<method>(multichannelOutputs),
+        "multichanneloutputs", A_CANT, 0);
+    class_addmethod(klass, reinterpret_cast<method>(inputChanged),
+        "inputchanged", A_CANT, 0);
     class_addmethod(klass, reinterpret_cast<method>(openPlugin), "open",
         A_GIMME, 0);
     class_addmethod(klass, reinterpret_cast<method>(closePlugin), "close", 0);
@@ -649,6 +713,12 @@ extern "C" void ext_main(void*)
     class_addmethod(klass, reinterpret_cast<method>(stateRead), "stateread",
         A_SYM, 0);
     class_addmethod(klass, reinterpret_cast<method>(status), "status", 0);
+    CLASS_ATTR_LONG(klass, "mc", 0, MaxClap, mc);
+    CLASS_ATTR_ACCESSORS(klass, "mc", nullptr, setMcAttribute);
+    CLASS_ATTR_FILTER_CLIP(klass, "mc", 0, 1);
+    CLASS_ATTR_LABEL(klass, "mc", 0, "MC Mode");
+    CLASS_ATTR_DEFAULT(klass, "mc", 0, "0");
+    CLASS_ATTR_SAVE(klass, "mc", 0);
     class_dspinit(klass);
     class_register(CLASS_BOX, klass);
     gClass = klass;

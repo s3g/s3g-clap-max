@@ -161,6 +161,8 @@ private:
     std::vector<std::vector<float*>> outputFloatPointers_;
     std::vector<std::vector<float>> inputFloatStorage_;
     std::vector<std::vector<float>> outputFloatStorage_;
+    std::vector<std::vector<double>> inputDoubleStorage_;
+    std::vector<std::vector<double>> outputDoubleStorage_;
 
     mutable std::mutex pendingMutex_;
     std::vector<PendingEvent> pendingEvents_;

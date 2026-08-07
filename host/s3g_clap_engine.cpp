@@ -86,6 +86,8 @@ void ClapEngine::close()
     outputFloatPointers_.clear();
     inputFloatStorage_.clear();
     outputFloatStorage_.clear();
+    inputDoubleStorage_.clear();
+    outputDoubleStorage_.clear();
     inputChannels_ = 0;
     outputChannels_ = 0;
     maximumFrames_ = 0;
@@ -203,6 +205,11 @@ void ClapEngine::configureAudioStorage(uint32_t maximumFrames)
             std::vector<float>(maximumFrames_, 0.0f));
         outputFloatStorage_.assign(outputChannels_,
             std::vector<float>(maximumFrames_, 0.0f));
+    } else {
+        inputDoubleStorage_.assign(inputChannels_,
+            std::vector<double>(maximumFrames_, 0.0));
+        outputDoubleStorage_.assign(outputChannels_,
+            std::vector<double>(maximumFrames_, 0.0));
     }
 }
 
@@ -352,7 +359,8 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
             for (uint32_t channel = 0; channel < buffer.channel_count;
                  ++channel, ++flatInput)
                 inputDoublePointers_[port][channel] =
-                    flatInput < inputCount ? inputs[flatInput] : nullptr;
+                    inputs && flatInput < inputCount && inputs[flatInput]
+                    ? inputs[flatInput] : inputDoubleStorage_[flatInput].data();
             buffer.data64 = inputDoublePointers_[port].data();
             buffer.data32 = nullptr;
         } else {
@@ -379,7 +387,9 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
             for (uint32_t channel = 0; channel < buffer.channel_count;
                  ++channel, ++flatOutput)
                 outputDoublePointers_[port][channel] =
-                    flatOutput < outputCount ? outputs[flatOutput] : nullptr;
+                    outputs && flatOutput < outputCount && outputs[flatOutput]
+                    ? outputs[flatOutput]
+                    : outputDoubleStorage_[flatOutput].data();
             buffer.data64 = outputDoublePointers_[port].data();
             buffer.data32 = nullptr;
         } else {

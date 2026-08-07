@@ -25,6 +25,24 @@ must fit within those counts; unused Max outputs are cleared. The final outlet
 reports status, plugin metadata, parameter data, parameter changes, and MIDI
 output.
 
+Add the construction-time `@mc 1` attribute to present those channels as one
+Max multichannel inlet and one multichannel outlet:
+
+```max
+[s3g.clap~ 16 16 @mc 1]
+```
+
+The two arguments still set the maximum input and output channel counts. A
+zero count omits that signal inlet or outlet, so an output-only instrument can
+be created as:
+
+```max
+[s3g.clap~ 0 64 "s3g Ambi Encoder Stochastic" @mc 1]
+```
+
+Recreate the object to switch between MC and discrete mode. The rightmost
+status outlet remains a standard Max message outlet in both modes.
+
 ### Messages
 
 - `open` shows a native macOS picker that accepts `.clap` bundles.
@@ -55,7 +73,7 @@ The plugin can also be loaded when the Max object is created. Quote names that
 contain spaces:
 
 ```max
-[s3g.clap~ 0 64 "s3g Ambi Encoder Stochastic"]
+[s3g.clap~ 0 64 "s3g Ambi Encoder Stochastic" @mc 1]
 ```
 
 Direct paths take priority. Name discovery searches `CLAP_PATH` entries first,

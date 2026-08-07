@@ -246,6 +246,23 @@ int runSmoke(int argc, char** argv)
             std::fill(channel.begin(), channel.end(), 0.0);
     }
 
+    if (engine.inputChannels() > 0) {
+        for (auto& channel : output)
+            std::fill(channel.begin(), channel.end(), 0.0);
+        if (!engine.process(nullptr, 0, outputPointers.data(),
+                engine.outputChannels(), kTestFrames)) {
+            std::cerr << "silent missing-input processing failed\n";
+            return 1;
+        }
+        for (const auto& channel : output)
+            if (!std::all_of(channel.begin(), channel.end(), [](double value) {
+                    return std::isfinite(value);
+                })) {
+                std::cerr << "non-finite missing-input audio output\n";
+                return 1;
+            }
+    }
+
     std::vector<uint8_t> state;
     if (engine.saveState(state)) {
         if (state.empty() || !engine.loadState(state)) {

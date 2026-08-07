@@ -1,7 +1,7 @@
 {
   "name": "s3g-clap-max",
   "displayname": "s3g CLAP Host",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": "s3g",
   "description": "A native Max/MSP external that hosts CLAP audio plugins.",
   "tags": ["audio", "clap", "plugin", "msp"],
