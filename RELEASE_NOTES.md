@@ -16,6 +16,8 @@ to the current pinned CLAP and Max SDK baselines.
   filesystem and loader APIs.
 - Package a Windows-only Max distribution with
   `scripts/package-windows-release.sh`.
+- Rebuild both platform objects and package them together with
+  `scripts/package-combined-release.sh`.
 
 ### Changed
 

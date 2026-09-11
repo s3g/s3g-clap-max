@@ -140,9 +140,16 @@ MinGW-w64 toolchain and run:
 ```
 
 Create platform archives with `./scripts/package-release.sh` on macOS and
-`./scripts/package-windows-release.sh` for Windows x64. A cross-build proves
-the PE/COFF binary, imports, and `ext_main` export; final release qualification
-should still load it in Max on Windows with a native Windows CLAP plugin.
+`./scripts/package-windows-release.sh` for Windows x64. To rebuild both
+objects and place them in one installable Max package, run:
+
+```sh
+./scripts/package-combined-release.sh
+```
+
+A cross-build proves the PE/COFF binary, imports, and `ext_main` export; final
+release qualification should still load it in Max on Windows with a native
+Windows CLAP plugin.
 
 ## Development install
 
