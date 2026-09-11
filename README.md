@@ -49,7 +49,8 @@ status outlet remains a standard Max message outlet in both modes.
 
 ### Messages
 
-- `open` shows a native macOS picker that accepts `.clap` bundles.
+- `open` shows a native file picker that accepts `.clap` bundles or Windows
+  CLAP modules.
 - `open <path-or-name> [plugin-id]` loads a bundle and optional factory plugin
   ID. A quoted display name such as `open "s3g Ambi Encoder Stochastic"` is
   resolved through `CLAP_PATH` and the standard CLAP locations. Without an ID,
@@ -63,8 +64,8 @@ status outlet remains a standard Max message outlet in both modes.
 - `param <index> <plain-value>` and `paramid <clap-id> <plain-value>` set
   parameters.
 - `getparam <index>` outputs `paramvalue <index> <value> <display-text>`.
-- `editor` or `editor 1` opens the plugin's native Cocoa GUI. `editor 0` hides
-  it. Embedded and floating CLAP GUIs are supported.
+- `editor` or `editor 1` opens the plugin's native Cocoa or Win32 GUI.
+  `editor 0` hides it. Embedded and floating CLAP GUIs are supported.
 - `midievent <status> <data1> <data2>` sends MIDI to note port 0;
   `midievent <port> <status> <data1> <data2>` selects another port.
 - `statewrite <path>` and `stateread <path>` use the CLAP state extension.
@@ -82,22 +83,26 @@ contain spaces:
 
 Direct paths take priority. Name discovery searches `CLAP_PATH` entries first,
 then `~/Library/Audio/Plug-Ins/CLAP` and
-`/Library/Audio/Plug-Ins/CLAP` on macOS. It matches bundle filenames, native
-bundle display names, and bundle identifiers without loading plugin
+`/Library/Audio/Plug-Ins/CLAP` on macOS. On Windows it searches
+`%COMMONPROGRAMFILES%\CLAP` and
+`%LOCALAPPDATA%\Programs\Common\CLAP`. It matches filenames and, on macOS,
+native bundle display names and identifiers without loading plugin
 executables. Case, spaces, underscores, hyphens, and punctuation are ignored.
 A unique substring such as `"Encoder Stochastic"` is accepted; ambiguous
 matches produce an error with candidate paths.
 
-Loaded CLAP modules remain initialized and mapped until Max exits. This avoids
-unsafe Cocoa class unloading when a native editor leaves objects pending in
-Max's autorelease pool. Restart Max after rebuilding a CLAP plugin that has
-already been loaded during the current session.
+Loaded CLAP modules remain initialized and mapped until Max exits. This keeps
+pending native GUI objects and callbacks from pointing into unloaded plugin
+code. Restart Max after rebuilding a CLAP plugin that has already been loaded
+during the current session.
 
 ## Build
 
-The build fetches pinned CLAP and `max-sdk-base` sources when local paths are
-not supplied. On macOS it produces a universal arm64/x86_64 external directly
-inside `package/externals`:
+The build fetches pinned CLAP 1.2.10 and `max-sdk-base` sources when local
+paths are not supplied. All builds place the external directly inside
+`package/externals`.
+
+For a universal arm64/x86_64 macOS release:
 
 ```sh
 ./scripts/build-release.sh
@@ -115,6 +120,29 @@ To exercise the generic host against a known plugin during `ctest`, also pass
 `-DS3G_CLAP_MAX_TEST_PLUGIN=/absolute/path/to/plugin.clap`. Add
 `-DS3G_CLAP_MAX_TEST_NAME="Plugin Display Name"` to test human-readable name
 resolution.
+
+### Windows x64
+
+On Windows with Visual Studio 2022 and CMake installed, use the native MSVC
+preset:
+
+```powershell
+cmake --preset windows-msvc
+cmake --build --preset windows-msvc
+```
+
+This produces `package\externals\s3g.clap~.mxe64`. To cross-build the same
+Windows x64 object on macOS or Linux, install an `x86_64-w64-mingw32`
+MinGW-w64 toolchain and run:
+
+```sh
+./scripts/build-windows-release.sh
+```
+
+Create platform archives with `./scripts/package-release.sh` on macOS and
+`./scripts/package-windows-release.sh` for Windows x64. A cross-build proves
+the PE/COFF binary, imports, and `ext_main` export; final release qualification
+should still load it in Max on Windows with a native Windows CLAP plugin.
 
 ## Development install
 
@@ -134,12 +162,15 @@ Set `S3G_MAX_VERSION` or `S3G_MAX_PACKAGE_ROOT` to override the destination.
 The installer refuses to replace a real directory or file at that path.
 Restart Max, then open `s3g.clap~.maxhelp` from the package browser.
 
+On Windows, build with the MSVC preset and copy or link the repository's
+`package` directory to `%USERPROFILE%\Documents\Max 9\Packages\s3g-clap-max`.
+
 ## Current scope
 
 The host covers processor lifecycle, audio, parameters, MIDI, plugin state,
-native Cocoa editors, host callbacks, and basic restart requests. It does not
-yet provide Max patcher-embedded state, transport events, latency compensation,
-preset discovery, or dynamic audio-port reconfiguration.
+native Cocoa and Win32 editors, host callbacks, and basic restart requests. It
+does not yet provide Max patcher-embedded state, transport events, latency
+compensation, preset discovery, or dynamic audio-port reconfiguration.
 
 ## License
 

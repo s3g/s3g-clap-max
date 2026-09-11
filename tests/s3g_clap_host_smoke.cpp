@@ -1,6 +1,6 @@
 #include "s3g_clap_discovery.h"
 #include "s3g_clap_engine.h"
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
 #include "s3g_clap_editor.h"
 #include <clap/ext/gui.h>
 #endif
@@ -184,7 +184,7 @@ int runSmoke(int argc, char** argv)
         return 1;
     }
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     const auto* gui = engine.pluginHandle() && engine.pluginHandle()->get_extension
         ? static_cast<const clap_plugin_gui_t*>(
             engine.pluginHandle()->get_extension(
@@ -289,7 +289,7 @@ int runSmoke(int argc, char** argv)
         }
     }
 
-    // Closing the final instances after exercising a Cocoa editor used to
+    // Closing the final instances after exercising a native editor used to
     // unload the plugin bundle before the surrounding autorelease pool was
     // drained. Reopen it here to verify process-lifetime module retention.
     secondInstance.close();

@@ -11,12 +11,47 @@
 
 #if defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
+#elif defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #endif
 
 namespace s3g::max_host {
 namespace {
 
 namespace fs = std::filesystem;
+
+fs::path filesystemPath(const std::string& value)
+{
+#if defined(_WIN32)
+    const int length = MultiByteToWideChar(CP_UTF8, 0, value.c_str(),
+        static_cast<int>(value.size()), nullptr, 0);
+    if (length <= 0) return {};
+    std::wstring native(static_cast<size_t>(length), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, value.c_str(),
+        static_cast<int>(value.size()), native.data(), length);
+    return fs::path(native);
+#else
+    return fs::path(value);
+#endif
+}
+
+std::string pathText(const fs::path& path)
+{
+#if defined(_WIN32)
+    const std::wstring& native = path.native();
+    const int length = WideCharToMultiByte(CP_UTF8, 0, native.c_str(),
+        static_cast<int>(native.size()), nullptr, 0, nullptr, nullptr);
+    if (length <= 0) return {};
+    std::string result(static_cast<size_t>(length), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, native.c_str(),
+        static_cast<int>(native.size()), result.data(), length, nullptr,
+        nullptr);
+    return result;
+#else
+    return path.string();
+#endif
+}
 
 struct BundleCandidate {
     std::string path;
@@ -48,7 +83,7 @@ std::string normalizedName(const std::string& value)
 
 bool hasClapExtension(const fs::path& path)
 {
-    return lowercase(path.extension().string()) == ".clap";
+    return lowercase(pathText(path.extension())) == ".clap";
 }
 
 fs::path expandedPath(const std::string& value)
@@ -56,16 +91,16 @@ fs::path expandedPath(const std::string& value)
     if (value.size() >= 2 && value[0] == '~'
         && (value[1] == '/' || value[1] == '\\')) {
         if (const char* home = std::getenv("HOME"))
-            return fs::path(home) / value.substr(2);
+            return filesystemPath(home) / filesystemPath(value.substr(2));
     }
-    return fs::path(value);
+    return filesystemPath(value);
 }
 
 std::string canonicalPath(const fs::path& path)
 {
     std::error_code error;
     const fs::path canonical = fs::weakly_canonical(path, error);
-    return (error ? path.lexically_normal() : canonical).string();
+    return pathText(error ? path.lexically_normal() : canonical);
 }
 
 void appendUniqueRoot(std::vector<std::string>& roots,
@@ -110,7 +145,7 @@ std::string cfStringValue(CFStringRef value)
 std::vector<std::string> bundleMetadataNames(const fs::path& path)
 {
     std::vector<std::string> names;
-    const std::string native = path.string();
+    const std::string native = pathText(path);
     CFURLRef url = CFURLCreateFromFileSystemRepresentation(
         kCFAllocatorDefault,
         reinterpret_cast<const UInt8*>(native.c_str()),
@@ -170,13 +205,13 @@ std::vector<BundleCandidate> discoverBundles(
             if (!seen.insert(canonical).second) continue;
             BundleCandidate candidate;
             candidate.path = canonical;
-            candidate.names.push_back(candidatePath.filename().string());
-            candidate.names.push_back(candidatePath.stem().string());
+            candidate.names.push_back(pathText(candidatePath.filename()));
+            candidate.names.push_back(pathText(candidatePath.stem()));
             auto metadataNames = bundleMetadataNames(candidatePath);
             candidate.names.insert(candidate.names.end(),
                 metadataNames.begin(), metadataNames.end());
             candidate.label = metadataNames.empty()
-                ? candidatePath.stem().string() : metadataNames.front();
+                ? pathText(candidatePath.stem()) : metadataNames.front();
             bundles.push_back(std::move(candidate));
         }
     }
@@ -223,17 +258,17 @@ std::vector<std::string> clapSearchPaths()
 #if defined(__APPLE__)
     if (const char* home = std::getenv("HOME"))
         appendUniqueRoot(roots, seen,
-            fs::path(home) / "Library/Audio/Plug-Ins/CLAP");
+            filesystemPath(home) / "Library/Audio/Plug-Ins/CLAP");
     appendUniqueRoot(roots, seen, "/Library/Audio/Plug-Ins/CLAP");
 #elif defined(_WIN32)
     if (const char* common = std::getenv("COMMONPROGRAMFILES"))
-        appendUniqueRoot(roots, seen, fs::path(common) / "CLAP");
+        appendUniqueRoot(roots, seen, filesystemPath(common) / "CLAP");
     if (const char* local = std::getenv("LOCALAPPDATA"))
         appendUniqueRoot(roots, seen,
-            fs::path(local) / "Programs/Common/CLAP");
+            filesystemPath(local) / "Programs/Common/CLAP");
 #else
     if (const char* home = std::getenv("HOME"))
-        appendUniqueRoot(roots, seen, fs::path(home) / ".clap");
+        appendUniqueRoot(roots, seen, filesystemPath(home) / ".clap");
     appendUniqueRoot(roots, seen, "/usr/lib/clap");
 #endif
     return roots;

@@ -79,7 +79,7 @@ public:
     bool saveState(std::vector<uint8_t>& destination) const;
     bool loadState(const std::vector<uint8_t>& source);
 
-    // Thread-safe host requests are latched for the Cocoa/main-thread owner.
+    // Thread-safe host requests are latched for the native main-thread owner.
     bool takeRestartRequest();
     bool takeProcessRequest();
     bool takeCallbackRequest();

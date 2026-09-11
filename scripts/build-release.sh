@@ -2,10 +2,11 @@
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-build_dir="$repo_dir/build-release"
+build_dir="${S3G_CLAP_MAX_BUILD_DIR:-$repo_dir/build-release}"
 generator="${S3G_CLAP_MAX_GENERATOR:-Unix Makefiles}"
 
 cmake_args=(
+  --fresh
   -S "$repo_dir"
   -B "$build_dir"
   -G "$generator"

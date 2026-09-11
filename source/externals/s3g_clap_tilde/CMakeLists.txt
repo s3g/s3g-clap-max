@@ -4,6 +4,8 @@ set(GIT_VERSION_TAG "${PROJECT_VERSION}")
 set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(COPYRIGHT_STRING "Copyright 2026 Shawn Greenlee")
 
+set(C74_SUPPORT_DIR "${MAX_SDK_BASE_DIR}/c74support" CACHE PATH
+    "Cycling '74 SDK support directory" FORCE)
 include("${MAX_SDK_BASE_DIR}/script/max-pretarget.cmake")
 
 set(${PROJECT_NAME}_EXTERN_OUTPUT_NAME "s3g.clap~" CACHE STRING "" FORCE)
@@ -19,6 +21,9 @@ if(APPLE)
   target_sources(${PROJECT_NAME} PRIVATE
     s3g_clap_bundle_picker.mm
     s3g_clap_editor.mm)
+elseif(WIN32)
+  target_sources(${PROJECT_NAME} PRIVATE
+    s3g_clap_editor_win.cpp)
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -29,6 +34,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 if(APPLE)
   target_link_libraries(${PROJECT_NAME} PRIVATE
     "-framework AppKit" "-framework CoreFoundation")
+elseif(WIN32)
+  target_link_libraries(${PROJECT_NAME} PRIVATE user32)
 elseif(UNIX)
   target_link_libraries(${PROJECT_NAME} PRIVATE dl)
 endif()
@@ -42,6 +49,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # and the SDK's object_method macro currently trips this C++17 diagnostic.
   target_compile_options(${PROJECT_NAME} PRIVATE
     -Wno-cast-function-type-mismatch -Wno-c++20-extensions)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # Max's callback ABI and Win32's GetProcAddress require intentional
+  # function-pointer casts that GCC diagnoses under -Wextra.
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wno-cast-function-type)
 endif()
 
 include("${MAX_SDK_BASE_DIR}/script/max-posttarget.cmake")

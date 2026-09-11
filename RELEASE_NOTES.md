@@ -1,5 +1,40 @@
 # s3g-clap-max release notes
 
+## v0.5.0 — 2026-09-11
+
+This release adds first-class Windows x64 support and updates the host build
+to the current pinned CLAP and Max SDK baselines.
+
+### Added
+
+- Build `s3g.clap~.mxe64` with Visual Studio 2022 on Windows or MinGW-w64 from
+  macOS/Linux.
+- Host embedded and floating Win32 CLAP plugin editors in a native resizable
+  window.
+- Search the standard system and per-user Windows CLAP locations.
+- Preserve UTF-8 plugin and state paths when calling Windows wide-character
+  filesystem and loader APIs.
+- Package a Windows-only Max distribution with
+  `scripts/package-windows-release.sh`.
+
+### Changed
+
+- Update the pinned CLAP headers from 1.2.6 to 1.2.10.
+- Pin `max-sdk-base` to its current `c03a292` baseline, correcting the prior
+  invalid SDK commit setting.
+- Keep native plugin modules mapped for process lifetime on both supported
+  platforms so delayed GUI callbacks cannot reference unloaded code.
+
+### Verification
+
+- Universal macOS arm64/x86_64 external build and CLAP 1.2.10 host smoke test.
+- Windows x64 PE/COFF external and Windows host smoke executable cross-build.
+- Windows export/import inspection for `ext_main`, `MaxAPI.dll`,
+  `MaxAudio.dll`, and Win32 system libraries.
+
+Windows runtime validation in Max is still required on a Windows machine;
+the included Windows artifact is cross-compiled and statically inspected.
+
 ## v0.4.1 — 2026-08-07
 
 This release makes the object channel arguments describe only the channels
@@ -120,11 +155,11 @@ pending Objective-C objects. The fix was verified with the 64-output
 
 ## Installation
 
-1. Unzip `s3g-clap-max-0.4.1-macos-universal.zip`.
+1. Unzip the `s3g-clap-max-0.5.0` archive for your platform.
 2. Place the resulting `s3g-clap-max` folder in
    `~/Documents/Max 9/Packages/`.
 3. Restart Max.
 4. Open `s3g.clap~.maxhelp`.
 
-The included external is an ad-hoc-signed universal macOS binary supporting
-Apple Silicon and Intel.
+The macOS archive contains an ad-hoc-signed universal external for Apple
+Silicon and Intel. The Windows archive contains a native x64 `.mxe64`.

@@ -7,6 +7,8 @@
 #include "s3g_clap_engine.h"
 #if defined(__APPLE__)
 #include "s3g_clap_bundle_picker.h"
+#endif
+#if defined(__APPLE__) || defined(_WIN32)
 #include "s3g_clap_editor.h"
 #endif
 
@@ -16,6 +18,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <new>
@@ -50,14 +53,30 @@ struct Implementation {
     std::recursive_mutex engineMutex;
     s3g::max_host::ClapEngine engine;
     std::atomic<bool> processError { false };
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     S3GClapEditor* editor = nullptr;
 #endif
 };
 
 t_class* gClass = nullptr;
 
-long attributeLong(long argc, t_atom* argv, const char* name, long fallback)
+std::filesystem::path filesystemPath(const std::string& path)
+{
+#if defined(_WIN32)
+    const int length = MultiByteToWideChar(CP_UTF8, 0, path.c_str(),
+        static_cast<int>(path.size()), nullptr, 0);
+    if (length <= 0) return {};
+    std::wstring native(static_cast<size_t>(length), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(),
+        static_cast<int>(path.size()), native.data(), length);
+    return std::filesystem::path(native);
+#else
+    return std::filesystem::path(path);
+#endif
+}
+
+bool attributeEnabled(long argc, t_atom* argv, const char* name,
+    bool fallback)
 {
     if (!argv || !name) return fallback;
     for (long index = 0; index < argc - 1; ++index) {
@@ -65,7 +84,7 @@ long attributeLong(long argc, t_atom* argv, const char* name, long fallback)
         const auto* symbol = atom_getsym(argv + index);
         if (symbol && symbol->s_name && symbol->s_name[0] == '@'
             && std::strcmp(symbol->s_name + 1, name) == 0)
-            return atom_getlong(argv + index + 1);
+            return atom_getlong(argv + index + 1) != 0;
     }
     return fallback;
 }
@@ -123,7 +142,7 @@ void emitError(MaxClap* object, const std::string& message)
 
 void destroyEditor(Implementation* implementation)
 {
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     if (implementation && implementation->editor) {
         s3gDestroyClapEditor(implementation->editor);
         implementation->editor = nullptr;
@@ -141,7 +160,7 @@ void deferredTick(MaxClap* object)
     auto& engine = implementation->engine;
 
     engine.serviceMainThreadCallback();
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     uint32_t editorWidth = 0;
     uint32_t editorHeight = 0;
     if (engine.takeGuiResizeRequest(editorWidth, editorHeight)
@@ -224,13 +243,18 @@ void perform64(MaxClap* object, t_object*, double** inputs, long inputCount,
         return;
     }
 
-    const auto visibleInputs = static_cast<uint32_t>(std::min<long>(
-        inputCount, implementation->inputCount));
-    const auto visibleOutputs = static_cast<uint32_t>(std::min<long>(
-        outputCount, implementation->outputCount));
+    const uint32_t availableInputs = inputCount > 0
+        ? static_cast<uint32_t>(inputCount) : 0u;
+    const uint32_t availableOutputs = outputCount > 0
+        ? static_cast<uint32_t>(outputCount) : 0u;
+    const uint32_t visibleInputs = std::min(availableInputs,
+        implementation->inputCount);
+    const uint32_t visibleOutputs = std::min(availableOutputs,
+        implementation->outputCount);
     const bool ok = implementation->engine.process(inputs, visibleInputs,
         outputs, visibleOutputs, static_cast<uint32_t>(frames));
-    for (long channel = visibleOutputs; channel < outputCount; ++channel)
+    for (long channel = static_cast<long>(visibleOutputs);
+         channel < outputCount; ++channel)
         if (outputs[channel])
             std::fill(outputs[channel], outputs[channel] + frames, 0.0);
     if (!ok && implementation->engine.isActive())
@@ -276,7 +300,8 @@ void openPlugin(MaxClap* object, t_symbol*, long argc, t_atom* argv)
         const std::string maxResolved = absolutePath(referenceSymbol);
         std::error_code filesystemError;
         if (!maxResolved.empty()
-            && std::filesystem::exists(maxResolved, filesystemError)
+            && std::filesystem::exists(filesystemPath(maxResolved),
+                filesystemError)
             && !filesystemError)
             reference = maxResolved;
         std::string resolutionError;
@@ -421,7 +446,7 @@ void editorMessage(MaxClap* object, t_symbol*, long argc, t_atom* argv)
         emitError(object, "open a CLAP plugin before requesting its editor");
         return;
     }
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     if (shouldShow) {
         if (!implementation->editor) {
             std::string error;
@@ -447,7 +472,8 @@ void editorMessage(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     emit(object, "editor", 1, &atom);
 #else
     (void)shouldShow;
-    emitError(object, "native CLAP editors are currently implemented on macOS");
+    emitError(object,
+        "native CLAP editors are currently implemented on macOS and Windows");
 #endif
 }
 
@@ -455,10 +481,13 @@ void setParameter(MaxClap* object, t_symbol*, long argc, t_atom* argv)
 {
     auto* implementation = object ? object->implementation : nullptr;
     if (!implementation || argc < 2) return;
-    const long index = atom_getlong(argv);
+    const t_atom_long index = atom_getlong(argv);
     const double value = atom_getfloat(argv + 1);
     std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
-    if (index < 1 || !implementation->engine.enqueueParameter(
+    if (index < 1
+        || static_cast<uint64_t>(index)
+            > std::numeric_limits<uint32_t>::max()
+        || !implementation->engine.enqueueParameter(
             static_cast<uint32_t>(index), value))
         emitError(object, "invalid, read-only, or full CLAP parameter event");
 }
@@ -469,7 +498,8 @@ void setParameterById(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     if (!implementation || argc < 2) return;
     const t_atom_long id = atom_getlong(argv);
     const double value = atom_getfloat(argv + 1);
-    if (id < 0) {
+    if (id < 0 || static_cast<uint64_t>(id)
+            > std::numeric_limits<clap_id>::max()) {
         emitError(object, "CLAP parameter id must be non-negative");
         return;
     }
@@ -479,7 +509,7 @@ void setParameterById(MaxClap* object, t_symbol*, long argc, t_atom* argv)
         emitError(object, "invalid, read-only, or full CLAP parameter event");
 }
 
-void getParameter(MaxClap* object, long index)
+void getParameter(MaxClap* object, t_atom_long index)
 {
     auto* implementation = object ? object->implementation : nullptr;
     if (!implementation || index < 1) return;
@@ -505,12 +535,12 @@ void midiEvent(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     long offset = 0;
     uint16_t port = 0;
     if (argc >= 4) {
-        port = static_cast<uint16_t>(std::clamp<long>(atom_getlong(argv),
-            0, 65535));
+        port = static_cast<uint16_t>(std::clamp<t_atom_long>(
+            atom_getlong(argv), 0, 65535));
         offset = 1;
     }
     const auto byte = [&](long index) {
-        return static_cast<uint8_t>(std::clamp<long>(
+        return static_cast<uint8_t>(std::clamp<t_atom_long>(
             atom_getlong(argv + offset + index), 0, 255));
     };
     std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
@@ -531,7 +561,8 @@ void stateWrite(MaxClap* object, t_symbol* path)
         }
     }
     const std::string destination = absolutePath(path);
-    std::ofstream stream(destination, std::ios::binary | std::ios::trunc);
+    std::ofstream stream(filesystemPath(destination),
+        std::ios::binary | std::ios::trunc);
     stream.write(reinterpret_cast<const char*>(state.data()),
         static_cast<std::streamsize>(state.size()));
     if (!stream) {
@@ -546,7 +577,7 @@ void stateRead(MaxClap* object, t_symbol* path)
     auto* implementation = object ? object->implementation : nullptr;
     if (!implementation || !path || !path->s_name) return;
     const std::string source = absolutePath(path);
-    std::ifstream stream(source, std::ios::binary);
+    std::ifstream stream(filesystemPath(source), std::ios::binary);
     if (!stream) {
         emitError(object, "could not open CLAP state file");
         return;
@@ -639,7 +670,7 @@ void* newObject(t_symbol*, long argc, t_atom* argv)
     object->statusOutlet = nullptr;
     object->deferred = nullptr;
     object->implementation = nullptr;
-    object->mc = attributeLong(argc, argv, "mc", 0) != 0 ? 1 : 0;
+    object->mc = attributeEnabled(argc, argv, "mc", false) ? 1 : 0;
 
     const long positionalCount = attr_args_offset(
         static_cast<short>(argc), argv);
@@ -647,10 +678,11 @@ void* newObject(t_symbol*, long argc, t_atom* argv)
     long inputs = kDefaultInputs;
     long outputs = kDefaultOutputs;
     if (positionalCount > 0 && atom_gettype(argv) == A_LONG)
-        inputs = std::clamp<long>(atom_getlong(argv), 0, kMaximumChannels);
+        inputs = static_cast<long>(std::clamp<t_atom_long>(
+            atom_getlong(argv), 0, kMaximumChannels));
     if (positionalCount > 1 && atom_gettype(argv + 1) == A_LONG)
-        outputs = std::clamp<long>(atom_getlong(argv + 1), 0,
-            kMaximumChannels);
+        outputs = static_cast<long>(std::clamp<t_atom_long>(
+            atom_getlong(argv + 1), 0, kMaximumChannels));
 
     object->statusOutlet = outlet_new(object, nullptr);
     if (object->mc) {

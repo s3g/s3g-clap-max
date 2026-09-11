@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING
-    "macOS architectures for the Max external")
+if(APPLE)
+  set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING
+      "macOS architectures for the Max external")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING
+      "Minimum macOS version for the universal Max external")
+endif()
 
-project(s3g_clap_max VERSION 0.4.1 LANGUAGES CXX)
+project(s3g_clap_max VERSION 0.5.0 LANGUAGES CXX)
 
 if(APPLE)
   enable_language(OBJCXX)
@@ -16,18 +20,16 @@ set(S3G_MAX_SDK_GIT_REPOSITORY
     "https://github.com/Cycling74/max-sdk-base.git" CACHE STRING
     "Max SDK base repository")
 set(S3G_MAX_SDK_GIT_TAG
-    "69a69252fdd6ac1d06e246d9a04c0a89d9607a17" CACHE STRING
+    "c03a2922a2a8ff149165a1e2ea134e9321d6e202" CACHE STRING
     "Max SDK base git tag or commit")
 set(MAX_SDK_BASE_DIR "" CACHE PATH
     "Path to a max-sdk-base checkout")
 if(NOT MAX_SDK_BASE_DIR)
   FetchContent_Declare(max_sdk_base
     GIT_REPOSITORY "${S3G_MAX_SDK_GIT_REPOSITORY}"
-    GIT_TAG "${S3G_MAX_SDK_GIT_TAG}")
-  FetchContent_GetProperties(max_sdk_base)
-  if(NOT max_sdk_base_POPULATED)
-    FetchContent_Populate(max_sdk_base)
-  endif()
+    GIT_TAG "${S3G_MAX_SDK_GIT_TAG}"
+    SOURCE_SUBDIR _s3g_fetch_only)
+  FetchContent_MakeAvailable(max_sdk_base)
   set(MAX_SDK_BASE_DIR "${max_sdk_base_SOURCE_DIR}")
 endif()
 if(NOT EXISTS "${MAX_SDK_BASE_DIR}/script/max-pretarget.cmake")
@@ -38,18 +40,16 @@ endif()
 set(S3G_CLAP_GIT_REPOSITORY
     "https://github.com/free-audio/clap.git" CACHE STRING
     "CLAP repository")
-set(S3G_CLAP_GIT_TAG "1.2.6" CACHE STRING
+set(S3G_CLAP_GIT_TAG "1.2.10" CACHE STRING
     "CLAP git tag or commit")
 set(S3G_CLAP_INCLUDE_DIR "" CACHE PATH
     "Path containing clap/clap.h")
 if(NOT S3G_CLAP_INCLUDE_DIR)
   FetchContent_Declare(clap
     GIT_REPOSITORY "${S3G_CLAP_GIT_REPOSITORY}"
-    GIT_TAG "${S3G_CLAP_GIT_TAG}")
-  FetchContent_GetProperties(clap)
-  if(NOT clap_POPULATED)
-    FetchContent_Populate(clap)
-  endif()
+    GIT_TAG "${S3G_CLAP_GIT_TAG}"
+    SOURCE_SUBDIR _s3g_fetch_only)
+  FetchContent_MakeAvailable(clap)
   set(S3G_CLAP_INCLUDE_DIR "${clap_SOURCE_DIR}/include")
 endif()
 if(NOT EXISTS "${S3G_CLAP_INCLUDE_DIR}/clap/clap.h")
@@ -77,6 +77,9 @@ if(BUILD_TESTING)
       PROPERTIES LANGUAGE OBJCXX)
     target_sources(s3g_clap_host_smoke PRIVATE
       source/externals/s3g_clap_tilde/s3g_clap_editor.mm)
+  elseif(WIN32)
+    target_sources(s3g_clap_host_smoke PRIVATE
+      source/externals/s3g_clap_tilde/s3g_clap_editor_win.cpp)
   endif()
   target_compile_features(s3g_clap_host_smoke PRIVATE cxx_std_17)
   target_include_directories(s3g_clap_host_smoke PRIVATE
@@ -86,6 +89,8 @@ if(BUILD_TESTING)
   if(APPLE)
     target_link_libraries(s3g_clap_host_smoke PRIVATE
       "-framework AppKit" "-framework CoreFoundation")
+  elseif(WIN32)
+    target_link_libraries(s3g_clap_host_smoke PRIVATE user32)
   elseif(UNIX)
     target_link_libraries(s3g_clap_host_smoke PRIVATE dl)
   endif()

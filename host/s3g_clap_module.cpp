@@ -19,6 +19,38 @@
 namespace s3g::max_host {
 namespace {
 
+std::filesystem::path filesystemPath(const std::string& path)
+{
+#if defined(_WIN32)
+    const int length = MultiByteToWideChar(CP_UTF8, 0, path.c_str(),
+        static_cast<int>(path.size()), nullptr, 0);
+    if (length <= 0) return {};
+    std::wstring native(static_cast<size_t>(length), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(),
+        static_cast<int>(path.size()), native.data(), length);
+    return std::filesystem::path(native);
+#else
+    return std::filesystem::path(path);
+#endif
+}
+
+std::string pathText(const std::filesystem::path& path)
+{
+#if defined(_WIN32)
+    const std::wstring& native = path.native();
+    const int length = WideCharToMultiByte(CP_UTF8, 0, native.c_str(),
+        static_cast<int>(native.size()), nullptr, 0, nullptr, nullptr);
+    if (length <= 0) return {};
+    std::string result(static_cast<size_t>(length), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, native.c_str(),
+        static_cast<int>(native.size()), result.data(), length, nullptr,
+        nullptr);
+    return result;
+#else
+    return path.string();
+#endif
+}
+
 template <typename Function>
 Function loadEntrySymbol(void* handle)
 {
@@ -87,8 +119,10 @@ void* loadNative(const std::string& path, std::string& error)
     }
     return bundle;
 #elif defined(_WIN32)
-    HMODULE module = LoadLibraryW(std::filesystem::path(path).c_str());
-    if (!module) error = "LoadLibrary failed";
+    HMODULE module = LoadLibraryW(filesystemPath(path).c_str());
+    if (!module)
+        error = "LoadLibraryW failed with Windows error "
+            + std::to_string(GetLastError());
     return module;
 #else
     void* module = dlopen(path.c_str(), RTLD_LOCAL | RTLD_NOW);
@@ -135,12 +169,11 @@ struct ProcessModuleRegistry {
 
 ProcessModuleRegistry& processModuleRegistry()
 {
-    // CLAP GUIs can leave Cocoa objects in Max's outer autorelease pool. If
-    // their bundle is unloaded when the last Max object closes, those objects
-    // can later reference unmapped Objective-C class metadata while the pool
-    // drains. Keep initialized modules mapped for the lifetime of Max; the OS
-    // reclaims them when the process exits. Allocating the registry itself for
-    // process lifetime also avoids unsafe static-destruction ordering.
+    // Native CLAP GUIs may leave platform objects or callbacks pending after
+    // their final instance closes. Keep initialized modules mapped for Max's
+    // process lifetime so those references cannot point into unloaded code.
+    // Allocating the registry itself for process lifetime also avoids unsafe
+    // static-destruction ordering.
     static auto* registry = new ProcessModuleRegistry;
     return *registry;
 }
@@ -149,8 +182,8 @@ std::string normalizedPath(const std::string& path)
 {
     std::error_code error;
     const std::filesystem::path canonical =
-        std::filesystem::weakly_canonical(path, error);
-    return error ? path : canonical.string();
+        std::filesystem::weakly_canonical(filesystemPath(path), error);
+    return error ? path : pathText(canonical);
 }
 
 std::shared_ptr<SharedClapModule> loadSharedModule(const std::string& path,
@@ -207,7 +240,7 @@ bool ClapModule::open(const std::string& path, std::string& error)
         error = "empty CLAP path";
         return false;
     }
-    if (!std::filesystem::exists(path)) {
+    if (!std::filesystem::exists(filesystemPath(path))) {
         error = "CLAP path does not exist";
         return false;
     }
