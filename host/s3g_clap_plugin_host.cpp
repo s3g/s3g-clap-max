@@ -1,6 +1,7 @@
 #include "s3g_clap_plugin_host.h"
 
 #include <clap/ext/gui.h>
+#include <clap/ext/latency.h>
 #include <clap/ext/params.h>
 #include <clap/ext/state.h>
 
@@ -114,6 +115,16 @@ void stateMarkDirty(const clap_host_t* host)
 }
 
 const clap_host_state_t kHostState { stateMarkDirty };
+
+void latencyChanged(const clap_host_t* host)
+{
+    if (auto* self = static_cast<Plugin*>(host
+            ? host->host_data : nullptr)) {
+        self->notifyLatencyChanged();
+    }
+}
+
+const clap_host_latency_t kHostLatency { latencyChanged };
 
 } // namespace
 
@@ -245,6 +256,15 @@ void Plugin::destroy()
     entryInitialized_ = false;
     hostName_.clear();
     pluginPath_.clear();
+    restartRequested_.store(false, std::memory_order_relaxed);
+    processRequested_.store(false, std::memory_order_relaxed);
+    callbackRequested_.store(false, std::memory_order_relaxed);
+    stateDirty_.store(false, std::memory_order_relaxed);
+    latencyChanged_.store(false, std::memory_order_relaxed);
+    guiResizeRequest_.store(0u, std::memory_order_relaxed);
+    guiShowRequested_.store(false, std::memory_order_relaxed);
+    guiHideRequested_.store(false, std::memory_order_relaxed);
+    guiClosedState_.store(0u, std::memory_order_relaxed);
 }
 
 bool Plugin::activate(double sampleRate, uint32_t minFrames,
@@ -304,7 +324,7 @@ bool Plugin::saveState(std::vector<uint8_t>& destination) const
 bool Plugin::loadState(const std::vector<uint8_t>& source)
 {
     const auto* state = extension<clap_plugin_state_t>(CLAP_EXT_STATE);
-    if (!state || !state->load || source.empty()) return false;
+    if (!state || !state->load) return false;
     StateReader reader { &source, 0u };
     clap_istream_t stream { &reader, stateRead };
     return state->load(plugin_, &stream) && reader.offset == source.size();
@@ -328,6 +348,11 @@ bool Plugin::takeCallbackRequest()
 bool Plugin::takeStateDirty()
 {
     return stateDirty_.exchange(false, std::memory_order_acq_rel);
+}
+
+bool Plugin::takeLatencyChanged()
+{
+    return latencyChanged_.exchange(false, std::memory_order_acq_rel);
 }
 
 bool Plugin::takeGuiResizeRequest(uint32_t& width,
@@ -375,6 +400,11 @@ void Plugin::notifyStateDirty()
     stateDirty_.store(true, std::memory_order_release);
 }
 
+void Plugin::notifyLatencyChanged()
+{
+    latencyChanged_.store(true, std::memory_order_release);
+}
+
 void Plugin::notifyGuiResizeRequested(uint32_t width,
     uint32_t height)
 {
@@ -411,6 +441,8 @@ const void* Plugin::hostGetExtension(const clap_host_t*,
     if (std::strcmp(extensionId, CLAP_EXT_GUI) == 0) return &kHostGui;
     if (std::strcmp(extensionId, CLAP_EXT_PARAMS) == 0) return &kHostParams;
     if (std::strcmp(extensionId, CLAP_EXT_STATE) == 0) return &kHostState;
+    if (std::strcmp(extensionId, CLAP_EXT_LATENCY) == 0)
+        return &kHostLatency;
     return nullptr;
 }
 

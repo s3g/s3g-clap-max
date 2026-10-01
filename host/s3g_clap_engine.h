@@ -4,6 +4,7 @@
 #include "s3g_clap_plugin_host.h"
 
 #include <clap/ext/audio-ports.h>
+#include <clap/events.h>
 #include <clap/ext/params.h>
 
 #include <array>
@@ -31,6 +32,24 @@ struct ClapOutputEvent {
     double value = 0.0;
     uint16_t port = 0;
     std::array<uint8_t, 3> midi {};
+};
+
+struct ClapTransportState {
+    bool available = false;
+    bool hasTempo = false;
+    bool hasBeatsTimeline = false;
+    bool hasSecondsTimeline = false;
+    bool hasTimeSignature = false;
+    bool playing = false;
+    bool recording = false;
+    bool loopActive = false;
+    double tempo = 120.0;
+    double songBeats = 0.0;
+    double songSeconds = 0.0;
+    double loopStartBeats = 0.0;
+    double loopEndBeats = 0.0;
+    uint16_t timeSignatureNumerator = 4;
+    uint16_t timeSignatureDenominator = 4;
 };
 
 class ClapEngine {
@@ -61,6 +80,10 @@ public:
     bool saveState(std::vector<uint8_t>& destination) const;
     bool loadState(const std::vector<uint8_t>& source);
 
+    void setTransport(const ClapTransportState& state);
+    void clearTransport();
+    uint32_t latencySamples() const { return latencySamples_; }
+
     bool popOutputEvent(ClapOutputEvent& event);
     bool hasOutputEvents() const;
 
@@ -83,6 +106,10 @@ public:
     bool hasRestartRequest() const { return plugin_.hasRestartRequest(); }
     bool hasCallbackRequest() const { return plugin_.hasCallbackRequest(); }
     bool hasGuiRequest() const { return plugin_.hasGuiRequest(); }
+    bool takeStateDirty() { return plugin_.takeStateDirty(); }
+    bool hasStateDirty() const { return plugin_.hasStateDirty(); }
+    bool takeLatencyChanged();
+    bool hasLatencyChanged() const { return plugin_.hasLatencyChanged(); }
     void serviceMainThreadCallback() { plugin_.serviceMainThreadCallback(); }
     bool takeGuiResizeRequest(uint32_t& width, uint32_t& height)
     {
@@ -133,6 +160,7 @@ private:
     bool queueEvent(const PendingEvent& event);
     bool captureOutputEvent(const clap_event_header_t* event);
     void clearOutputs(double** outputs, uint32_t count, uint32_t frames) const;
+    void refreshLatency();
 
     static constexpr uint32_t kMaximumEvents = 256;
     static constexpr uint32_t kOutputQueueSize = 512;
@@ -141,7 +169,10 @@ private:
     uint32_t outputChannels_ = 0;
     uint32_t maximumFrames_ = 0;
     uint64_t steadyTime_ = 0;
+    double sampleRate_ = 0.0;
+    uint32_t latencySamples_ = 0;
     bool useDoublePrecision_ = false;
+    ClapTransportState transport_ {};
 
     ClapModule module_;
     s3g::clap_host::Plugin plugin_;

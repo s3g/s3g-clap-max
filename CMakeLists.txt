@@ -7,7 +7,7 @@ if(APPLE)
       "Minimum macOS version for the universal Max external")
 endif()
 
-project(s3g_clap_max VERSION 0.5.0 LANGUAGES CXX)
+project(s3g_clap_max VERSION 0.6.0 LANGUAGES CXX)
 
 if(APPLE)
   enable_language(OBJCXX)
@@ -15,6 +15,20 @@ endif()
 
 include(FetchContent)
 include(CTest)
+
+find_package(Python3 QUIET COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+  add_custom_target(s3g_m4l_devices ALL
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-devices.py"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
+    COMMENT "Generating s3g Max for Live devices")
+  if(BUILD_TESTING)
+    add_test(NAME s3g_m4l_device_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_devices.py")
+  endif()
+endif()
 
 set(S3G_MAX_SDK_GIT_REPOSITORY
     "https://github.com/Cycling74/max-sdk-base.git" CACHE STRING

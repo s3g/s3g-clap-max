@@ -211,6 +211,21 @@ int runSmoke(int argc, char** argv)
         }
     }
 
+    s3g::max_host::ClapTransportState transport;
+    transport.available = true;
+    transport.hasTempo = true;
+    transport.hasBeatsTimeline = true;
+    transport.hasSecondsTimeline = true;
+    transport.hasTimeSignature = true;
+    transport.playing = true;
+    transport.tempo = 123.0;
+    transport.songBeats = 8.5;
+    transport.songSeconds = 4.0;
+    transport.timeSignatureNumerator = 7;
+    transport.timeSignatureDenominator = 8;
+    engine.setTransport(transport);
+    (void)engine.latencySamples();
+
     std::vector<std::vector<double>> input(engine.inputChannels(),
         std::vector<double>(kTestFrames, 0.0));
     std::vector<std::vector<double>> output(engine.outputChannels(),
@@ -240,6 +255,7 @@ int runSmoke(int argc, char** argv)
         for (auto& channel : input)
             std::fill(channel.begin(), channel.end(), 0.0);
     }
+    engine.clearTransport();
 
     if (engine.inputChannels() > 0) {
         for (auto& channel : output)

@@ -18,6 +18,9 @@ trap 'rm -rf "$stage_dir"' EXIT
 stage_package="$stage_dir/s3g-clap-max"
 mkdir -p "$stage_package/externals"
 cp -R "$repo_dir/package/help" "$stage_package/help"
+cp -R "$repo_dir/package/devices" "$stage_package/devices"
+cp -R "$repo_dir/package/patchers" "$stage_package/patchers"
+cp -R "$repo_dir/package/docs" "$stage_package/docs"
 cp "$package_info" "$stage_package/package-info.json"
 cp -R "$repo_dir/package/externals/s3g.clap~.mxo" \
   "$stage_package/externals/s3g.clap~.mxo"

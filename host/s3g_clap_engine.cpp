@@ -1,5 +1,7 @@
 #include "s3g_clap_engine.h"
 
+#include <clap/ext/latency.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -13,6 +15,19 @@ constexpr uint32_t kMaximumHostedChannels = 1024;
 std::string safeString(const char* value)
 {
     return value ? value : "";
+}
+
+int64_t fixedPointTime(double value, int64_t factor)
+{
+    if (!std::isfinite(value)) return 0;
+    const long double scaled = static_cast<long double>(value)
+        * static_cast<long double>(factor);
+    const long double minimum = static_cast<long double>(
+        std::numeric_limits<int64_t>::min());
+    const long double maximum = static_cast<long double>(
+        std::numeric_limits<int64_t>::max());
+    return static_cast<int64_t>(std::llround(
+        std::clamp(scaled, minimum, maximum)));
 }
 
 } // namespace
@@ -92,6 +107,8 @@ void ClapEngine::close()
     outputChannels_ = 0;
     maximumFrames_ = 0;
     steadyTime_ = 0;
+    sampleRate_ = 0.0;
+    latencySamples_ = 0;
     {
         std::lock_guard<std::mutex> lock(pendingMutex_);
         pendingEvents_.clear();
@@ -216,7 +233,10 @@ bool ClapEngine::activate(double sampleRate, uint32_t maximumFrames,
         error = "CLAP activation failed";
         return false;
     }
+    sampleRate_ = sampleRate;
     steadyTime_ = 0;
+    refreshLatency();
+    plugin_.takeLatencyChanged();
     return true;
 }
 
@@ -399,6 +419,60 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
         &eventView, inputEventCount, inputEventGet,
     };
     clap_output_events_t outputEvents { this, outputEventPush };
+    clap_event_transport_t transportEvent {};
+    const clap_event_transport_t* transportPointer = nullptr;
+    if (transport_.available) {
+        transportEvent.header = {
+            sizeof(clap_event_transport_t), 0,
+            CLAP_CORE_EVENT_SPACE_ID, CLAP_EVENT_TRANSPORT, 0,
+        };
+        if (transport_.hasTempo) {
+            transportEvent.flags |= CLAP_TRANSPORT_HAS_TEMPO;
+            transportEvent.tempo = transport_.tempo;
+        }
+        if (transport_.hasBeatsTimeline) {
+            transportEvent.flags |= CLAP_TRANSPORT_HAS_BEATS_TIMELINE;
+            transportEvent.song_pos_beats = fixedPointTime(
+                transport_.songBeats, CLAP_BEATTIME_FACTOR);
+        }
+        if (transport_.hasSecondsTimeline) {
+            transportEvent.flags |= CLAP_TRANSPORT_HAS_SECONDS_TIMELINE;
+            transportEvent.song_pos_seconds = fixedPointTime(
+                transport_.songSeconds, CLAP_SECTIME_FACTOR);
+        }
+        if (transport_.hasTimeSignature) {
+            transportEvent.flags |= CLAP_TRANSPORT_HAS_TIME_SIGNATURE;
+            transportEvent.tsig_num = transport_.timeSignatureNumerator;
+            transportEvent.tsig_denom = transport_.timeSignatureDenominator;
+        }
+        if (transport_.playing)
+            transportEvent.flags |= CLAP_TRANSPORT_IS_PLAYING;
+        if (transport_.recording)
+            transportEvent.flags |= CLAP_TRANSPORT_IS_RECORDING;
+        if (transport_.loopActive)
+            transportEvent.flags |= CLAP_TRANSPORT_IS_LOOP_ACTIVE;
+        transportEvent.loop_start_beats = fixedPointTime(
+            transport_.loopStartBeats, CLAP_BEATTIME_FACTOR);
+        transportEvent.loop_end_beats = fixedPointTime(
+            transport_.loopEndBeats, CLAP_BEATTIME_FACTOR);
+        if (transport_.hasBeatsTimeline && transport_.hasTimeSignature
+            && transport_.timeSignatureDenominator > 0u) {
+            const double beatsPerBar = static_cast<double>(
+                transport_.timeSignatureNumerator) * 4.0
+                / static_cast<double>(transport_.timeSignatureDenominator);
+            if (beatsPerBar > 0.0) {
+                const double bar = std::floor(
+                    transport_.songBeats / beatsPerBar);
+                transportEvent.bar_number = static_cast<int32_t>(std::clamp(
+                    bar,
+                    static_cast<double>(std::numeric_limits<int32_t>::min()),
+                    static_cast<double>(std::numeric_limits<int32_t>::max())));
+                transportEvent.bar_start = fixedPointTime(
+                    bar * beatsPerBar, CLAP_BEATTIME_FACTOR);
+            }
+        }
+        transportPointer = &transportEvent;
+    }
     clap_process_t block {};
     block.steady_time = static_cast<int64_t>(steadyTime_);
     block.frames_count = frames;
@@ -408,9 +482,17 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
     block.audio_outputs_count = static_cast<uint32_t>(outputBuffers_.size());
     block.in_events = &inputEvents;
     block.out_events = &outputEvents;
+    block.transport = transportPointer;
 
     const clap_process_status status = plugin_.process(block);
     steadyTime_ += frames;
+    if (transport_.available && transport_.playing && sampleRate_ > 0.0) {
+        const double seconds = static_cast<double>(frames) / sampleRate_;
+        if (transport_.hasSecondsTimeline)
+            transport_.songSeconds += seconds;
+        if (transport_.hasBeatsTimeline && transport_.hasTempo)
+            transport_.songBeats += seconds * transport_.tempo / 60.0;
+    }
     if (status == CLAP_PROCESS_ERROR) {
         clearOutputs(outputs, outputCount, frames);
         return false;
@@ -501,6 +583,43 @@ bool ClapEngine::saveState(std::vector<uint8_t>& destination) const
 bool ClapEngine::loadState(const std::vector<uint8_t>& source)
 {
     return plugin_.loadState(source);
+}
+
+void ClapEngine::setTransport(const ClapTransportState& state)
+{
+    transport_ = state;
+    transport_.tempo = std::isfinite(transport_.tempo)
+        && transport_.tempo > 0.0 ? transport_.tempo : 120.0;
+    transport_.songBeats = std::isfinite(transport_.songBeats)
+        ? transport_.songBeats : 0.0;
+    transport_.songSeconds = std::isfinite(transport_.songSeconds)
+        ? transport_.songSeconds : 0.0;
+    if (transport_.timeSignatureNumerator == 0u)
+        transport_.timeSignatureNumerator = 4u;
+    if (transport_.timeSignatureDenominator == 0u)
+        transport_.timeSignatureDenominator = 4u;
+}
+
+void ClapEngine::clearTransport()
+{
+    transport_ = {};
+}
+
+void ClapEngine::refreshLatency()
+{
+    latencySamples_ = 0u;
+    if (!plugin_.isActive()) return;
+    const auto* latency = plugin_.extension<clap_plugin_latency_t>(
+        CLAP_EXT_LATENCY);
+    if (latency && latency->get)
+        latencySamples_ = latency->get(plugin_.plugin());
+}
+
+bool ClapEngine::takeLatencyChanged()
+{
+    if (!plugin_.takeLatencyChanged()) return false;
+    refreshLatency();
+    return true;
 }
 
 bool ClapEngine::hasOutputEvents() const

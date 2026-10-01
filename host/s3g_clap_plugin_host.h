@@ -91,6 +91,15 @@ public:
     {
         return callbackRequested_.load(std::memory_order_acquire);
     }
+    bool hasStateDirty() const
+    {
+        return stateDirty_.load(std::memory_order_acquire);
+    }
+    bool takeLatencyChanged();
+    bool hasLatencyChanged() const
+    {
+        return latencyChanged_.load(std::memory_order_acquire);
+    }
     bool hasGuiRequest() const
     {
         return guiResizeRequest_.load(std::memory_order_acquire) != 0u
@@ -108,6 +117,7 @@ public:
     // Extension callbacks use these thread-safe notification points.
     void notifyProcessRequested();
     void notifyStateDirty();
+    void notifyLatencyChanged();
     void notifyGuiResizeRequested(uint32_t width, uint32_t height);
     void notifyGuiShowRequested();
     void notifyGuiHideRequested();
@@ -134,6 +144,7 @@ private:
     std::atomic<bool> processRequested_ { false };
     std::atomic<bool> callbackRequested_ { false };
     std::atomic<bool> stateDirty_ { false };
+    std::atomic<bool> latencyChanged_ { false };
     std::atomic<uint64_t> guiResizeRequest_ { 0u };
     std::atomic<bool> guiShowRequested_ { false };
     std::atomic<bool> guiHideRequested_ { false };
