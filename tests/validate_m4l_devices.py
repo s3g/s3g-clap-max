@@ -131,7 +131,7 @@ def validate(name: str, expected_outputs: int, clap_prefix: str,
     state = state_carrier["saved_attribute_attributes"]["valueof"]
     state_parameter = state_carrier["saved_object_attributes"]
     if (state_carrier.get("text")
-            != "pattr clap_state @autorestore 1 @thru 2"
+            != "pattr clap_state @autorestore 1 @thru 0"
             or state_carrier.get("varname") != "clap_state"
             or state_parameter.get("parameter_enable") != 1
             or state_parameter.get("parameter_mappable") != 0
@@ -156,12 +156,20 @@ def validate(name: str, expected_outputs: int, clap_prefix: str,
         (("obj-clap-state", 0), ("obj-state-valid", 0)),
         (("obj-state-valid", 0), ("obj-state-restore", 0)),
         (("obj-state-restore", 0), ("obj-clap", 0)),
+        (("obj-device", 0), ("obj-state-restore-init", 0)),
+        (("obj-state-restore-init", 2), ("obj-clap-state", 0)),
+        (("obj-state-restore-init", 1),
+         ("obj-state-capture-enable", 0)),
+        (("obj-state-capture-enable", 0),
+         ("obj-state-capture-gate", 0)),
+        (("obj-state-restore-init", 0), ("obj-state-change-bang", 0)),
         (("obj-route-status", state_outlet), ("obj-clap-state", 0)),
         (("obj-route-status", 2), ("obj-state-change-bang", 0)),
         (("obj-route-status", 3), ("obj-state-change-bang", 0)),
         (("obj-route-status", statechanged_outlet),
          ("obj-state-change-bang", 0)),
-        (("obj-state-change-bang", 0), ("obj-state-capture-delay", 0)),
+        (("obj-state-change-bang", 0), ("obj-state-capture-gate", 1)),
+        (("obj-state-capture-gate", 0), ("obj-state-capture-delay", 0)),
         (("obj-state-capture-delay", 0), ("obj-state-get", 0)),
         (("obj-state-get", 0), ("obj-clap", 0)),
     }
@@ -169,6 +177,7 @@ def validate(name: str, expected_outputs: int, clap_prefix: str,
             != "routepass s3g.clap.state.1"
             or boxes["obj-state-restore"].get("text") != "prepend setstate"
             or boxes["obj-state-get"].get("text") != "getstate"
+            or boxes["obj-state-capture-gate"].get("text") != "gate 1 0"
             or not state_lines.issubset(line_pairs)):
         raise ValueError(f"{name}: explicit CLAP state bridge is incomplete")
     if boxes["obj-default-open"]["text"] != default_open:

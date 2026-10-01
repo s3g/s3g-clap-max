@@ -41,6 +41,12 @@ for Live without cross-routing.
   parameter and caused Live to save `MxDEmptyFileDrop` instead of CLAP state.
   Filter restores by the `s3g.clap.state.1` tag so an empty/default parameter
   can never be sent to `setstate`.
+- Make Blob capture strictly one-way with `pattr @thru 0`; request restore once
+  after `s3g.live.thisdevice` initializes, then open a gate for later captures.
+  This removes a capture/restore feedback loop that repeatedly reloaded the
+  plugin and could destroy an open Cocoa editor from Live's AudioCalc thread.
+- Restore state into an already-open matching CLAP instance instead of closing
+  and reopening it, preserving its editor and avoiding unnecessary GUI churn.
 - Forward Live play state, tempo, timeline positions, and time signature from
   `plugsync~` into CLAP transport events.
 - Host the CLAP latency extension, report latency changes in samples, and

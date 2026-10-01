@@ -145,7 +145,11 @@ must be installed on that machine.
 
 The carrier uses Max for Live parameter type `3` (Blob). Restore messages are
 accepted only when they begin with the embedded-state version tag
-`s3g.clap.state.1`; empty/default values are ignored.
+`s3g.clap.state.1`; empty/default values are ignored. Captures are silent
+(`pattr @thru 0`). Once the Live device API reports that the device exists,
+the patch requests the restored Blob exactly once and only then enables future
+captures. Restoring a matching plugin updates its existing instance rather
+than closing its editor and reopening the CLAP.
 
 The general Source device treats its CLAP host as a stereo encoder. After a fresh or
 restored plugin load it requests the plugin's parameter list; if an exact

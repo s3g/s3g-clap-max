@@ -1781,7 +1781,7 @@
             260.0,
             22.0
           ],
-          "text": "pattr clap_state @autorestore 1 @thru 2",
+          "text": "pattr clap_state @autorestore 1 @thru 0",
           "numinlets": 1,
           "numoutlets": 3,
           "outlettype": [
@@ -1835,6 +1835,62 @@
           ],
           "text": "prepend setstate",
           "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-state-restore-init",
+          "maxclass": "newobj",
+          "patching_rect": [
+            525.0,
+            740.0,
+            55.0,
+            22.0
+          ],
+          "text": "t b b b",
+          "numinlets": 1,
+          "numoutlets": 3,
+          "outlettype": [
+            "bang",
+            "bang",
+            "bang"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-state-capture-enable",
+          "maxclass": "message",
+          "patching_rect": [
+            590.0,
+            740.0,
+            30.0,
+            22.0
+          ],
+          "text": "1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-state-capture-gate",
+          "maxclass": "newobj",
+          "patching_rect": [
+            650.0,
+            775.0,
+            65.0,
+            22.0
+          ],
+          "text": "gate 1 0",
+          "numinlets": 2,
           "numoutlets": 1,
           "outlettype": [
             ""
@@ -2661,6 +2717,66 @@
       {
         "patchline": {
           "source": [
+            "obj-device",
+            0
+          ],
+          "destination": [
+            "obj-state-restore-init",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-state-restore-init",
+            2
+          ],
+          "destination": [
+            "obj-clap-state",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-state-restore-init",
+            1
+          ],
+          "destination": [
+            "obj-state-capture-enable",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-state-capture-enable",
+            0
+          ],
+          "destination": [
+            "obj-state-capture-gate",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-state-restore-init",
+            0
+          ],
+          "destination": [
+            "obj-state-change-bang",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
             "obj-route-status",
             4
           ],
@@ -2710,6 +2826,18 @@
         "patchline": {
           "source": [
             "obj-state-change-bang",
+            0
+          ],
+          "destination": [
+            "obj-state-capture-gate",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-state-capture-gate",
             0
           ],
           "destination": [

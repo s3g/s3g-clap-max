@@ -775,6 +775,26 @@ t_max_err setValueOf(MaxClap* object, long argc, t_atom* argv)
         }
     }
     try {
+        auto* implementation = object->implementation;
+        {
+            std::lock_guard<std::recursive_mutex> lock(
+                implementation->engineMutex);
+            auto& engine = implementation->engine;
+            if (engine.isOpen() && engine.path() == resolvedPath
+                && engine.pluginId() == pluginId) {
+                if (!engine.loadState(state)) {
+                    emitError(object, "CLAP state load failed");
+                    return MAX_ERR_GENERIC;
+                }
+                // Keep the current plugin instance and editor alive. Reopening
+                // the same plugin here used to destroy an NSWindow from Live's
+                // AudioCalc thread when a state carrier echoed its capture.
+                emitLoaded(object);
+                emitLatency(object);
+                notifyValueChanged(object);
+                return MAX_ERR_NONE;
+            }
+        }
         if (!installPlugin(object, resolvedPath, pluginId, &state, false,
                 error)) {
             emitError(object, error);

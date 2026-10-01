@@ -352,7 +352,7 @@ def clap_state_parameter() -> dict[str, object]:
     # external for getvalueof reliably while serializing an AMXD instance.
     return new_object(
         "obj-clap-state",
-        "pattr clap_state @autorestore 1 @thru 2",
+        "pattr clap_state @autorestore 1 @thru 0",
         525.0,
         670.0,
         260.0,
@@ -995,6 +995,12 @@ def common_runtime(
                    525.0, 690.0, 170.0, 1, 2),
         new_object("obj-state-restore", "prepend setstate", 525.0, 705.0,
                    105.0, 1, 1),
+        new_object("obj-state-restore-init", "t b b b", 525.0, 740.0,
+                   55.0, 1, 3, ["bang", "bang", "bang"]),
+        box("obj-state-capture-enable", "message",
+            [590.0, 740.0, 30.0, 22.0], text="1"),
+        new_object("obj-state-capture-gate", "gate 1 0", 650.0, 775.0,
+                   65.0, 2, 1),
         new_object("obj-state-capture-delay", "delay 100", 650.0, 705.0,
                    65.0, 1, 1, ["bang"]),
         box("obj-state-get", "message", [730.0, 705.0, 58.0, 22.0],
@@ -1024,12 +1030,21 @@ def common_runtime(
         line("obj-clap-state", 0, "obj-state-valid", 0),
         line("obj-state-valid", 0, "obj-state-restore", 0),
         line("obj-state-restore", 0, "obj-clap", 0),
+        line("obj-device", 0, "obj-state-restore-init", 0),
+        # Trigger runs right-to-left: request the restored Blob once, enable
+        # capture only after that synchronous restore path returns, then take
+        # a fresh snapshot. Captures never echo because pattr uses @thru 0.
+        line("obj-state-restore-init", 2, "obj-clap-state", 0),
+        line("obj-state-restore-init", 1, "obj-state-capture-enable", 0),
+        line("obj-state-capture-enable", 0, "obj-state-capture-gate", 0),
+        line("obj-state-restore-init", 0, "obj-state-change-bang", 0),
         line("obj-route-status", state_outlet, "obj-clap-state", 0),
         line("obj-route-status", 2, "obj-state-change-bang", 0),
         line("obj-route-status", 3, "obj-state-change-bang", 0),
         line("obj-route-status", statechanged_outlet,
              "obj-state-change-bang", 0),
-        line("obj-state-change-bang", 0, "obj-state-capture-delay", 0),
+        line("obj-state-change-bang", 0, "obj-state-capture-gate", 1),
+        line("obj-state-capture-gate", 0, "obj-state-capture-delay", 0),
         line("obj-state-capture-delay", 0, "obj-state-get", 0),
         line("obj-state-get", 0, "obj-clap", 0),
     ]
