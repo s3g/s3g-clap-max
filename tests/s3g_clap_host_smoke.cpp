@@ -1,5 +1,6 @@
 #include "s3g_clap_discovery.h"
 #include "s3g_clap_engine.h"
+#include "s3g_clap_state_codec.h"
 #if defined(__APPLE__) || defined(_WIN32)
 #include "s3g_clap_editor.h"
 #include <clap/ext/gui.h>
@@ -255,7 +256,40 @@ int runSmoke(int argc, char** argv)
         for (auto& channel : input)
             std::fill(channel.begin(), channel.end(), 0.0);
     }
+    // The Panner Main wrappers expose only 32 of their CLAPs' 64 inputs and
+    // outputs. The host must supply silence for the other CLAP inputs and
+    // leave output channels beyond the Max-visible count unaddressed.
+    if (engine.inputChannels() > 32 && engine.outputChannels() > 32) {
+        constexpr uint32_t visibleChannels = 32;
+        input.front().front() = 0.25;
+        if (!engine.process(inputPointers.data(), visibleChannels,
+                outputPointers.data(), visibleChannels, kTestFrames)) {
+            std::cerr << "partial 32-channel processing failed\n";
+            return 1;
+        }
+        for (uint32_t channel = 0; channel < visibleChannels; ++channel)
+            if (!std::all_of(output[channel].begin(), output[channel].end(),
+                    [](double value) { return std::isfinite(value); })) {
+                std::cerr << "non-finite partial-channel audio output\n";
+                return 1;
+            }
+        input.front().front() = 0.0;
+    }
     engine.clearTransport();
+
+    // The Sample wrappers' Kill button uses CLAP reset on the audio thread.
+    // A pending audition note must be discarded while parameter/state support
+    // and subsequent processing remain usable.
+    if (!engine.enqueueMidi(0u, 0x90u, 60u, 100u)) {
+        std::cerr << "audition note enqueue failed\n";
+        return 1;
+    }
+    engine.resetVoices();
+    if (!engine.process(inputPointers.data(), engine.inputChannels(),
+            outputPointers.data(), engine.outputChannels(), kTestFrames)) {
+        std::cerr << "processing after voice reset failed\n";
+        return 1;
+    }
 
     if (engine.inputChannels() > 0) {
         for (auto& channel : output)
@@ -299,6 +333,20 @@ int runSmoke(int argc, char** argv)
 
     std::vector<uint8_t> state;
     if (engine.saveState(state)) {
+        if (!s3g::max_host::state_codec::fitsMessage(state.size(), 4u)) {
+            const auto packed = s3g::max_host::state_codec::encode(state);
+            std::vector<uint8_t> restored;
+            if (!s3g::max_host::state_codec::fitsMessage(packed.size(), 5u)
+                || !s3g::max_host::state_codec::decode(
+                    packed, state.size(), restored)
+                || restored != state) {
+                std::cerr << "CLAP state cannot be carried safely by Max\n";
+                return 1;
+            }
+            std::cout << "state transport: " << state.size() << " bytes -> "
+                      << packed.size() << " bytes ("
+                      << 5u + (packed.size() + 3u) / 4u << " Max atoms)\n";
+        }
         if (state.empty() || !engine.loadState(state)) {
             std::cerr << "CLAP state round trip failed\n";
             return 1;

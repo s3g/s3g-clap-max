@@ -242,6 +242,21 @@ bool ClapEngine::activate(double sampleRate, uint32_t maximumFrames,
 
 void ClapEngine::deactivate() { plugin_.deactivate(); }
 
+void ClapEngine::resetVoices()
+{
+    if (!plugin_.isActive()) return;
+    // A note queued before the UI panic must not restart a voice immediately
+    // after the plug-in's reset. Keep pending parameter automation intact.
+    {
+        std::lock_guard<std::mutex> lock(pendingMutex_);
+        pendingEvents_.erase(std::remove_if(pendingEvents_.begin(),
+            pendingEvents_.end(), [](const PendingEvent& event) {
+                return event.type == PendingEvent::Type::Midi;
+            }), pendingEvents_.end());
+    }
+    plugin_.reset();
+}
+
 void ClapEngine::clearOutputs(double** outputs, uint32_t count,
     uint32_t frames) const
 {

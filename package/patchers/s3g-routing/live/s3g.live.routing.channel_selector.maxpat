@@ -589,8 +589,8 @@
           ],
           "bgfillcolor_proportion": 0.39,
           "bgfillcolor_type": "color",
-          "fontname": "Menlo",
-          "fontsize": 8.0,
+          "fontname": "Arial",
+          "fontsize": 11.0,
           "id": "obj-20",
           "items": "<empty>",
           "maxclass": "umenu",
@@ -604,30 +604,31 @@
           "parameter_enable": 0,
           "patching_rect": [
             0.0,
-            -2.0,
-            64.0,
+            0.0,
+            100.0,
             20.0
           ],
           "presentation": 1,
           "presentation_rect": [
             0.0,
-            -2.0,
-            64.0,
+            0.0,
+            100.0,
             20.0
           ],
           "style": "",
           "textcolor": [
-            0.63922,
-            0.63922,
-            0.63922,
+            0.74,
+            0.74,
+            0.74,
             1.0
           ],
           "elementcolor": [
-            0.62745,
-            0.62745,
-            0.62745,
+            0.65,
+            0.65,
+            0.65,
             1.0
-          ]
+          ],
+          "annotation": "Assign this Live output pair to a hardware output pair."
         }
       },
       {
@@ -889,16 +890,16 @@
           "angle": 270.0,
           "background": 1,
           "bgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
+            0.2,
+            0.2,
+            0.2,
             1.0
           ],
           "border": 1,
           "bordercolor": [
-            0.4,
-            0.4,
-            0.4,
+            0.28,
+            0.28,
+            0.28,
             1.0
           ],
           "id": "obj-11",
@@ -909,18 +910,18 @@
           "patching_rect": [
             0.0,
             0.0,
-            64.0,
-            16.0
+            100.0,
+            20.0
           ],
           "presentation": 1,
           "presentation_rect": [
             0.0,
             0.0,
-            64.0,
-            16.0
+            100.0,
+            20.0
           ],
           "proportion": 0.39,
-          "rounded": 0,
+          "rounded": 2,
           "style": ""
         }
       },

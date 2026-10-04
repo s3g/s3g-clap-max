@@ -67,6 +67,7 @@ public:
     bool activate(double sampleRate, uint32_t maximumFrames,
         std::string& error);
     void deactivate();
+    void resetVoices();
     bool process(double** inputs, uint32_t inputCount, double** outputs,
         uint32_t outputCount, uint32_t frames);
 

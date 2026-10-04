@@ -5,6 +5,7 @@
 
 #include "s3g_clap_discovery.h"
 #include "s3g_clap_engine.h"
+#include "s3g_clap_state_codec.h"
 #if defined(__APPLE__)
 #include "s3g_clap_bundle_picker.h"
 #endif
@@ -23,6 +24,7 @@
 #include <mutex>
 #include <new>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -32,6 +34,7 @@ constexpr long kDefaultOutputs = 2;
 constexpr long kMaximumChannels = 128;
 constexpr size_t kMaximumEmbeddedStateBytes = 64u * 1024u * 1024u;
 constexpr size_t kEmbeddedStateHeaderAtoms = 4u;
+constexpr size_t kCompressedStateHeaderAtoms = 5u;
 constexpr const char* kEmbeddedStateTag = "s3g.clap.state.1";
 
 struct MaxClap {
@@ -56,6 +59,7 @@ struct Implementation {
     std::recursive_mutex engineMutex;
     s3g::max_host::ClapEngine engine;
     std::atomic<bool> processError { false };
+    std::atomic<bool> voiceResetPending { false };
     std::atomic<bool> latencyReportPending { false };
 #if defined(__APPLE__) || defined(_WIN32)
     S3GClapEditor* editor = nullptr;
@@ -95,6 +99,13 @@ bool attributeEnabled(long argc, t_atom* argv, const char* name,
 
 void emit(MaxClap* object, const char* selector, long count, t_atom* atoms)
 {
+    if (count < 0 || static_cast<size_t>(count)
+        > s3g::max_host::state_codec::kMaxMessageAtoms) {
+        if (object)
+            object_error(reinterpret_cast<t_object*>(object),
+                "Max message exceeds the signed-short atom limit");
+        return;
+    }
     if (object && object->statusOutlet)
         outlet_anything(object->statusOutlet, gensym(selector),
             static_cast<short>(count), atoms);
@@ -284,6 +295,12 @@ void perform64(MaxClap* object, t_object*, double** inputs, long inputCount,
         implementation->inputCount);
     const uint32_t visibleOutputs = std::min(availableOutputs,
         implementation->outputCount);
+    // CLAP reset is an audio-thread operation. The UI only requests it; this
+    // block owns the engine lock and runs it before rendering the next vector.
+    if (implementation->engine.isActive()
+        && implementation->voiceResetPending.exchange(false,
+            std::memory_order_acq_rel))
+        implementation->engine.resetVoices();
     const bool ok = implementation->engine.process(inputs, visibleInputs,
         outputs, visibleOutputs, static_cast<uint32_t>(frames));
     for (long channel = static_cast<long>(visibleOutputs);
@@ -588,6 +605,28 @@ void setParameterById(MaxClap* object, t_symbol*, long argc, t_atom* argv)
         notifyValueChanged(object);
 }
 
+void automateParameterById(MaxClap* object, t_symbol*, long argc,
+    t_atom* argv)
+{
+    auto* implementation = object ? object->implementation : nullptr;
+    if (!implementation || argc < 2) return;
+    const t_atom_long id = atom_getlong(argv);
+    const double value = atom_getfloat(argv + 1);
+    if (id < 0 || static_cast<uint64_t>(id)
+            > std::numeric_limits<clap_id>::max()) {
+        emitError(object, "CLAP parameter id must be non-negative");
+        return;
+    }
+    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
+    if (!implementation->engine.enqueueParameterById(
+            static_cast<clap_id>(id), value))
+        emitError(object, "invalid, read-only, or full CLAP parameter event");
+    // Live already owns and stores the automatable live.* parameter that
+    // produced this message.  Do not mark the opaque s3g.clap~ state modified
+    // for every Arrangement automation sample: doing so makes Live treat the
+    // processor as manually changed and can override the active envelope.
+}
+
 void getParameter(MaxClap* object, t_atom_long index)
 {
     auto* implementation = object ? object->implementation : nullptr;
@@ -625,6 +664,14 @@ void midiEvent(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
     if (!implementation->engine.enqueueMidi(port, byte(0), byte(1), byte(2)))
         emitError(object, "CLAP event queue is full");
+}
+
+void killVoices(MaxClap* object)
+{
+    auto* implementation = object ? object->implementation : nullptr;
+    if (implementation)
+        implementation->voiceResetPending.store(true,
+            std::memory_order_release);
 }
 
 void stateWrite(MaxClap* object, t_symbol* path)
@@ -695,8 +742,20 @@ t_max_err getValueOf(MaxClap* object, long* argc, t_atom** argv)
         pluginId = implementation->engine.pluginId();
     }
 
-    const size_t wordCount = (state.size() + 3u) / 4u;
-    const size_t atomCount = kEmbeddedStateHeaderAtoms + wordCount;
+    std::vector<uint8_t> compressed;
+    const bool useCompression = !s3g::max_host::state_codec::fitsMessage(
+        state.size(), kEmbeddedStateHeaderAtoms);
+    if (useCompression) {
+        compressed = s3g::max_host::state_codec::encode(state);
+        if (!s3g::max_host::state_codec::fitsMessage(
+                compressed.size(), kCompressedStateHeaderAtoms))
+            return MAX_ERR_OUT_OF_MEM;
+    }
+    const auto& payload = useCompression ? compressed : state;
+    const size_t headerAtoms = useCompression
+        ? kCompressedStateHeaderAtoms : kEmbeddedStateHeaderAtoms;
+    const size_t wordCount = (payload.size() + 3u) / 4u;
+    const size_t atomCount = headerAtoms + wordCount;
     if (atomCount > static_cast<size_t>(
             std::numeric_limits<long>::max()))
         return MAX_ERR_OUT_OF_MEM;
@@ -711,16 +770,22 @@ t_max_err getValueOf(MaxClap* object, long* argc, t_atom** argv)
     atom_setsym(*argv, gensym(kEmbeddedStateTag));
     atom_setsym(*argv + 1, gensym(path.c_str()));
     atom_setsym(*argv + 2, gensym(pluginId.c_str()));
-    atom_setlong(*argv + 3, static_cast<t_atom_long>(state.size()));
+    // A negative byte count denotes the new compressed representation.
+    // Existing Sets with a nonnegative count retain the original raw format.
+    atom_setlong(*argv + 3, useCompression
+        ? -1 - static_cast<t_atom_long>(state.size())
+        : static_cast<t_atom_long>(state.size()));
+    if (useCompression)
+        atom_setlong(*argv + 4, static_cast<t_atom_long>(payload.size()));
     for (size_t wordIndex = 0; wordIndex < wordCount; ++wordIndex) {
         uint32_t word = 0u;
         for (size_t byteIndex = 0; byteIndex < 4u; ++byteIndex) {
             const size_t stateIndex = wordIndex * 4u + byteIndex;
-            if (stateIndex < state.size())
-                word |= static_cast<uint32_t>(state[stateIndex])
+            if (stateIndex < payload.size())
+                word |= static_cast<uint32_t>(payload[stateIndex])
                     << static_cast<uint32_t>(byteIndex * 8u);
         }
-        atom_setlong(*argv + kEmbeddedStateHeaderAtoms + wordIndex,
+        atom_setlong(*argv + headerAtoms + wordIndex,
             static_cast<t_atom_long>(word));
     }
     return MAX_ERR_NONE;
@@ -738,26 +803,49 @@ t_max_err setValueOf(MaxClap* object, long argc, t_atom* argv)
         return MAX_ERR_GENERIC;
 
     const t_atom_long byteCountValue = atom_getlong(argv + 3);
-    if (byteCountValue < 0
-        || static_cast<uint64_t>(byteCountValue)
+    const bool compressed = byteCountValue < 0;
+    const uint64_t byteCountUnsigned = compressed
+        ? static_cast<uint64_t>(-(byteCountValue + 1))
+        : static_cast<uint64_t>(byteCountValue);
+    if (byteCountUnsigned
             > kMaximumEmbeddedStateBytes)
         return MAX_ERR_GENERIC;
-    const size_t byteCount = static_cast<size_t>(byteCountValue);
-    const size_t wordCount = (byteCount + 3u) / 4u;
+    const size_t byteCount = static_cast<size_t>(byteCountUnsigned);
+    const size_t headerAtoms = compressed
+        ? kCompressedStateHeaderAtoms : kEmbeddedStateHeaderAtoms;
+    if (argc < static_cast<long>(headerAtoms)) return MAX_ERR_GENERIC;
+    size_t payloadBytes = byteCount;
+    if (compressed) {
+        const t_atom_long compressedBytes = atom_getlong(argv + 4);
+        if (compressedBytes < 0
+            || !s3g::max_host::state_codec::fitsMessage(
+                static_cast<size_t>(compressedBytes), headerAtoms))
+            return MAX_ERR_GENERIC;
+        payloadBytes = static_cast<size_t>(compressedBytes);
+    }
+    const size_t wordCount = (payloadBytes + 3u) / 4u;
     if (static_cast<size_t>(argc)
-        < kEmbeddedStateHeaderAtoms + wordCount)
+        < headerAtoms + wordCount)
         return MAX_ERR_GENERIC;
 
-    std::vector<uint8_t> state(byteCount, 0u);
+    std::vector<uint8_t> payload(payloadBytes, 0u);
     for (size_t wordIndex = 0; wordIndex < wordCount; ++wordIndex) {
         const uint32_t word = static_cast<uint32_t>(atom_getlong(
-            argv + kEmbeddedStateHeaderAtoms + wordIndex));
+            argv + headerAtoms + wordIndex));
         for (size_t byteIndex = 0; byteIndex < 4u; ++byteIndex) {
             const size_t stateIndex = wordIndex * 4u + byteIndex;
-            if (stateIndex < state.size())
-                state[stateIndex] = static_cast<uint8_t>(
+            if (stateIndex < payload.size())
+                payload[stateIndex] = static_cast<uint8_t>(
                     (word >> static_cast<uint32_t>(byteIndex * 8u)) & 0xffu);
         }
+    }
+    std::vector<uint8_t> state;
+    if (compressed) {
+        if (!s3g::max_host::state_codec::decode(
+                payload, byteCount, state))
+            return MAX_ERR_GENERIC;
+    } else {
+        state = std::move(payload);
     }
 
     const std::string storedPath = atom_getsym(argv + 1)->s_name;
@@ -813,7 +901,9 @@ void outputEmbeddedState(MaxClap* object)
     t_atom* argv = nullptr;
     const t_max_err result = getValueOf(object, &argc, &argv);
     if (result != MAX_ERR_NONE) {
-        emitError(object, "could not capture embedded CLAP state");
+        emitError(object, result == MAX_ERR_OUT_OF_MEM
+            ? "CLAP state cannot fit a Max message after compression, or memory is exhausted"
+            : "could not capture embedded CLAP state");
         return;
     }
     if (argc > 0 && argv)
@@ -1060,10 +1150,14 @@ extern "C" void ext_main(void*)
         A_GIMME, 0);
     class_addmethod(klass, reinterpret_cast<method>(setParameterById),
         "paramid", A_GIMME, 0);
+    class_addmethod(klass, reinterpret_cast<method>(automateParameterById),
+        "automateparamid", A_GIMME, 0);
     class_addmethod(klass, reinterpret_cast<method>(getParameter), "getparam",
         A_LONG, 0);
     class_addmethod(klass, reinterpret_cast<method>(midiEvent), "midievent",
         A_GIMME, 0);
+    class_addmethod(klass, reinterpret_cast<method>(killVoices), "killvoices",
+        0);
     class_addmethod(klass, reinterpret_cast<method>(stateWrite), "statewrite",
         A_SYM, 0);
     class_addmethod(klass, reinterpret_cast<method>(stateRead), "stateread",

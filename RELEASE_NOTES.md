@@ -1,5 +1,153 @@
 # s3g-clap-max release notes
 
+## Unreleased
+
+### Added
+
+- Add fixed stereo Max Instrument wrappers for Sample Player, Doubles,
+  Wavesets, Motion, Lanes, Grains, and Cutups. They forward Live MIDI to the
+  corresponding stereo CLAP IDs, return two ordinary Live audio channels,
+  save editor state, and expose selected parameters to Live automation. Add
+  Sample Circulator 2 separately as a stereo-input Max Audio Effect so it can
+  capture a Live audio track without losing its two-channel input.
+
+- Add fixed Max for Live wrappers for the ten stereo MIDI Drum instruments,
+  stereo Drum Overload and Echo effects, and Drum Mixer 16. A dedicated
+  eight-pair **s3g Send Stereo to Drum 16ch Bus** feeds the mixer without
+  sharing the generic 32-channel or 3OA bus namespace. The mixer's sum feeds
+  Live stereo; its direct channels also remain on the auxiliary device chain.
+
+- Prevent large CLAP state blobs from overflowing Max's signed-short outlet
+  atom count. Keep the original stored-state payload for small plugins and
+  use a lossless compact payload under the same `s3g.clap.state.1` tag for
+  Wrangler-sized states. Restore both forms; reject a state that still cannot
+  fit one Max message instead of emitting a truncated count.
+
+- Add eight fixed **s3g 3OA Effect …** 16-channel inserts with MAIN/NEXT
+  chaining and selected native Live automation parameters. Add fixed Head and
+  Stereo decoders that feed their audio track's ordinary stereo output, and
+  fixed Object, Adaptive, and Sub decoders that use the 32-slot mono hardware
+  output matrix. All five decoders receive the private 3OA master bus and have
+  pre-decoder gain and manual 16-channel recording.
+- Rename the generic send to **s3g Send Stereo to 32ch Bus**, keeping its
+  private bus symbols and channel layout unchanged. The old device filename
+  is intentionally not retained as a compatibility alias.
+
+- Add fixed 3OA wrappers for the remaining 17 Ambi Encoder generators:
+  Modal and Medium as mono-input, MIDI-routable audio effects; seven
+  MIDI-responsive zero-input encoders as Max Instruments; and eight
+  autonomous zero-input encoders as Max Instruments. Their first 16 outputs
+  use the existing private MAIN/NEXT 3OA path, with native Live automation
+  selections and saved CLAP editor state.
+
+- Name the two hardware-output wrappers **s3g 3OA Decoder Main** and
+  **s3g 3OA Decoder Speaker Main**. Here `3OA` replaces `Ambi`, while `Main`
+  identifies the hardware-output endpoint for the 3OA routing bus.
+
+- Publish 3OA wrappers under s3g-dsp-style filenames such as **s3g 3OA
+  Encoder Cloud**, omitting "CLAP" and placing "Encoder" before its kind.
+  The generator, package, and User Library use only the new device names.
+
+- Add fixed 3OA Point, Cloud, and Surface Terrain encoder wrappers with
+  integrated 32-slot RCV BUS input, plus stereo Cartography and mono Ray/Ray
+  Bilocation wrappers for Live's ordinary track inputs. All use stable CLAP
+  IDs, third-order output, private MAIN/NEXT routing, saved CLAP state, and
+  selected native Live automation parameters.
+
+- Add format-agnostic **s3g Send Stereo to 32ch Bus** and **s3g Multichannel
+  Receive** Max for Live devices. Up to sixteen source tracks can occupy
+  distinct stereo pairs on one private 32-channel bus, or intentionally sum
+  into a shared pair.
+- Store bus, pair, send gain, and dry-output choices as native Live parameters.
+  Provide sixteen independently named multichannel buses without sharing the
+  existing 3OA `master` bus.
+- Route Receive's 32 auxiliary outputs into the immediately following device
+  in insert mode; exposing `plugout~` channels alone does not make Live connect
+  auxiliary channels across a device-chain boundary.
+- Convert **s3g 3OA Encoder Path** to the shared 32-slot input contract.
+  It now exposes a stored **Input Bus** selector, receives the private bus
+  directly without a separate Receive device, maps slots 1–32 to the first 32
+  inputs of Path 64, exposes and recalls an active `Input Count` from 1–32,
+  and blocks Live's stereo lane.
+- Add one stored, automatable 16-channel `live.gain~` input control to both
+  decoder-main wrappers. It scales and meters the complete Ambisonic bed
+  before decoding while preserving all channels independently.
+- Add manual **FILE / REC / STOP** controls and an elapsed-time display to
+  both decoder-main wrappers using `sfrecord~ 16`. Record float32 WAV in native
+  ACN/SN3D order after input gain and before decoding. Require file selection
+  for each take, disable file replacement during recording, and stop on
+  stalled elapsed time. Recording never starts or opens a file on Set recall.
+- Add 32 stored mono output assignments to both decoder-main devices. A signal matrix
+  maps each decoded channel to a chosen slot or silence, with identity as the
+  default. The HARDWARE button opens the existing Live output pair routes.
+- Give Send Stereo to 32ch Bus separate metered mono gain controls for input channels
+  1 and 2, plus a stored LINKED / UNLINKED switch. Linked is the default and
+  copies level 1 to level 2 on recall or when re-enabled. Keep the original
+  Send Gain parameter as level 1 for older Live Sets; pan and mute remain
+  independent, and dry passthrough is unchanged.
+
+### Changed
+
+- Re-assert saved send/receive bus menu selections after Live device readiness
+  in Send Stereo to 32ch Bus, Receive, and Path Encoder. Gate menu write-back during
+  the startup replay so it cannot replace saved bus values or automation.
+- Make Decoder Main's paged mono routing grid use square 14-pixel cells so its
+  matrix dots render round, while retaining the same route parameters and
+  hardware-output assignments. Both decoder-main faces now fit 700 pixels.
+- Label the Send Stereo to 32ch Bus face **SND BUS** and the Path Encoder face
+  **RCV BUS**, spacing their top rows so neither label is clipped. Keep the
+  existing saved Live bus parameter names and 1–16 values.
+- Replace Decoder Main's 32 narrow mono menus with a paged 8 × 32 `matrixctrl`
+  editor. Retain the same 32 native Live route parameters and mono signal
+  matrix for saved Sets and automation. Show the linked gain value inside
+  `live.gain~` and place FILE/REC below it.
+- Match E4L's automation topology for fixed wrappers: native Live parameters
+  connect directly to the processor and preserve their explicit top-level
+  parameter order. Path Encoder uses a compact 286-pixel face; its nineteen
+  stable parameters are available in Live's automation chooser. Add
+  `automateparamid` to
+  `s3g.clap~` so Live-owned automation does not mark the opaque CLAP state
+  manually modified and disable the active envelope.
+- Return CLAP editor feedback to the fixed Live controls
+  with `set` rather than a normal value. This updates the displayed control
+  without re-emitting it and taking control away from an active Arrangement
+  automation envelope.
+- Use dropdown menus for Bus, Input Bus, and destination Pair, retaining the
+  saved one-based Live parameters. Pair labels show their actual bus slots
+  (01/02 through 31/32). Keep the decoder gain value in `live.gain~`.
+- Remove duplicate faceplate titles, badges, routing explanations, and the
+  latency display; preserve automatic latency compensation. Use subdued gray
+  text and dials, larger explicitly colored Editor/Load buttons, a consistent
+  Editor position, and **MAIN / NEXT ON** route labels.
+- Use native momentary `live.text` action buttons, 11-point Arial, consistent
+  20-pixel buttons/menus, a shared top toolbar, and aligned gain/pan/mute groups.
+  Decoder Main's sixteen 100 × 20 pixel Live hardware pair menus remain readable
+  in the HARDWARE window.
+- Make the shared s3g bus sender non-invasive: it no longer changes a Live
+  track's normal output routing to **Sends Only**. Generic Send provides an
+  explicit **DRY KEEP / BUS ONLY** control instead.
+- Define 32 as the public multichannel width. Wrappers for s3g-dsp plugins with
+  more than two inputs integrate a private-bus receiver, ignore Live's reserved
+  stereo lane, and consume only the 32 bus slots. The 34-channel Max declaration
+  remains internal Live routing scaffolding. Standalone Receive remains an
+  optional adapter for non-integrated multichannel devices.
+- Require every generated CLAP wrapper with more than two inputs to use the
+  same auxiliary-slot mapping. Source inspection identifies Path, Cloud,
+  Point, and Surface Terrain as the Ambisonic encoders with 64 physical inputs;
+  all four fixed wrappers now share this layout.
+- Generalize the private bus abstraction's in-patcher descriptions so the
+  transport no longer claims that all routed audio is 16-channel Ambisonics.
+- Retain the E4L-inspired Decoder Main separation: linked 16-channel input gain on
+  the left and output routing on the right. Widen the gain control so its
+  triangle stays visible; place generic Decoder Main's Load CLAP button below Editor.
+- Align Path's Input Bus menu with Editor and MAIN/NEXT; put Multichannel
+  Send's Bus, Pair, and dry-output switch together in its top row. Move the
+  standalone Receive bus menu to the same top-row alignment.
+- Fit device width to visible controls plus a 12-pixel right margin. Reduce
+  Source to 324 pixels, Path to 286, Insert to 268, Send to 360, and Receive to 112;
+  fit Decoder Main at 700 for its paged mono assignment matrix. Retain
+  the full 169-pixel height and black background.
+
 ## v0.6.0 — 2026-10-01
 
 This release adds a self-contained Max for Live path for the s3g 3OA CLAP

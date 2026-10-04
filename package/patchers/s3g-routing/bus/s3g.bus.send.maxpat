@@ -1411,22 +1411,6 @@
       },
       {
         "box": {
-          "id": "obj-19",
-          "linecount": 3,
-          "maxclass": "comment",
-          "numinlets": 1,
-          "numoutlets": 0,
-          "patching_rect": [
-            782.0,
-            256.0,
-            283.0,
-            47.0
-          ],
-          "text": "On first launch, initialize track output to Sends Only since we are routing ourselves. The user may override this later if they have a special situation."
-        }
-      },
-      {
-        "box": {
           "id": "obj-17",
           "maxclass": "message",
           "numinlets": 2,
@@ -1498,60 +1482,6 @@
             22.0
           ],
           "text": "#1"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-9",
-          "maxclass": "newobj",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ],
-          "patching_rect": [
-            782.0,
-            156.0,
-            76.0,
-            22.0
-          ],
-          "text": "s3g.live.once"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-40",
-          "maxclass": "newobj",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ],
-          "patching_rect": [
-            782.0,
-            225.0,
-            271.0,
-            22.0
-          ],
-          "text": "s3g.live.routing output_routing_type \"Sends Only\""
-        }
-      },
-      {
-        "box": {
-          "id": "obj-37",
-          "maxclass": "newobj",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ],
-          "patching_rect": [
-            782.0,
-            187.0,
-            118.0,
-            22.0
-          ],
-          "text": "s3g.live.device_track"
         }
       },
       {
@@ -1942,7 +1872,7 @@
             474.0,
             20.0
           ],
-          "text": "Sends 16-channel ambisonics audio from this device to the bus named in argument #1."
+          "text": "Routes this device's auxiliary audio outputs to a named s3g bus. Normal Live track output routing is never changed."
         }
       },
       {
@@ -1960,6 +1890,44 @@
             22.0
           ],
           "text": "s3g.bus.send"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-aux-ready-trigger",
+          "maxclass": "newobj",
+          "patching_rect": [
+            380.0,
+            590.0,
+            50.0,
+            22.0
+          ],
+          "text": "t b l",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "bang",
+            "list"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-clear-trigger",
+          "maxclass": "newobj",
+          "patching_rect": [
+            411.0,
+            266.0,
+            42.0,
+            22.0
+          ],
+          "text": "t b b",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "bang",
+            "bang"
+          ]
         }
       },
       {
@@ -2072,19 +2040,6 @@
       {
         "patchline": {
           "destination": [
-            "obj-9",
-            0
-          ],
-          "order": 0,
-          "source": [
-            "obj-1",
-            3
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "destination": [
             "obj-15",
             1
           ],
@@ -2109,7 +2064,7 @@
       {
         "patchline": {
           "destination": [
-            "obj-76",
+            "obj-clear-trigger",
             0
           ],
           "source": [
@@ -2517,18 +2472,6 @@
       {
         "patchline": {
           "destination": [
-            "obj-40",
-            0
-          ],
-          "source": [
-            "obj-37",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "destination": [
             "obj-21",
             1
           ],
@@ -2757,18 +2700,6 @@
           "source": [
             "obj-57",
             0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "destination": [
-            "obj-38",
-            1
-          ],
-          "source": [
-            "obj-6",
-            1
           ]
         }
       },
@@ -3112,14 +3043,50 @@
       },
       {
         "patchline": {
-          "destination": [
-            "obj-37",
-            0
-          ],
           "source": [
-            "obj-9",
+            "obj-6",
+            1
+          ],
+          "destination": [
+            "obj-aux-ready-trigger",
             0
           ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-aux-ready-trigger",
+            1
+          ],
+          "destination": [
+            "obj-38",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-aux-ready-trigger",
+            0
+          ],
+          "destination": [
+            "obj-32",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-clear-trigger", 1],
+          "destination": ["obj-17", 0]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-clear-trigger", 0],
+          "destination": ["obj-76", 0]
         }
       }
     ],

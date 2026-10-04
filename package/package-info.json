@@ -3,7 +3,7 @@
   "displayname": "s3g CLAP Host",
   "version": "0.6.0",
   "author": "s3g",
-  "description": "A native Max/MSP CLAP host with self-contained, privately namespaced 3OA Max for Live routing devices.",
-  "tags": ["audio", "clap", "plugin", "msp", "max for live", "ambisonics"],
+  "description": "A native Max/MSP CLAP host with self-contained generic and Ambisonic multichannel Max for Live routing devices.",
+  "tags": ["audio", "clap", "plugin", "msp", "max for live", "multichannel", "ambisonics"],
   "website": "https://github.com/s3g/s3g-clap-max"
 }

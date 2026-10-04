@@ -116,6 +116,115 @@
       },
       {
         "box": {
+          "id": "obj-bus-input-trigger",
+          "maxclass": "newobj",
+          "patching_rect": [
+            244.0,
+            165.0,
+            40.0,
+            22.0
+          ],
+          "text": "t s s",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "symbol",
+            "symbol"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-bus-change",
+          "maxclass": "newobj",
+          "patching_rect": [
+            405.0,
+            204.0,
+            70.0,
+            22.0
+          ],
+          "text": "zl.change",
+          "numinlets": 2,
+          "numoutlets": 2,
+          "outlettype": [
+            "list",
+            "int"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-prev-trigger",
+          "maxclass": "newobj",
+          "patching_rect": [
+            405.0,
+            246.0,
+            36.0,
+            22.0
+          ],
+          "text": "t s b",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "symbol",
+            "bang"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-prev-name",
+          "maxclass": "newobj",
+          "patching_rect": [
+            510.0,
+            286.0,
+            40.0,
+            22.0
+          ],
+          "text": "zl.reg",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            "anything"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-prev-clear",
+          "maxclass": "newobj",
+          "patching_rect": [
+            510.0,
+            324.0,
+            115.0,
+            22.0
+          ],
+          "text": "sprintf %s clear",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            "list"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-prev-send",
+          "maxclass": "newobj",
+          "patching_rect": [
+            510.0,
+            362.0,
+            92.0,
+            22.0
+          ],
+          "text": "s s3g.bus.ack",
+          "numinlets": 1,
+          "numoutlets": 0,
+          "outlettype": []
+        }
+      },
+      {
+        "box": {
           "comment": "",
           "id": "obj-2",
           "index": 0,
@@ -175,11 +284,30 @@
           "numoutlets": 0,
           "patching_rect": [
             26.0,
-            678.0,
+            720.0,
             81.0,
             22.0
           ],
           "text": "s s3g.bus.ack"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-track-ready-trigger",
+          "maxclass": "newobj",
+          "patching_rect": [
+            26.0,
+            678.0,
+            52.0,
+            22.0
+          ],
+          "text": "t b l",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "bang",
+            "list"
+          ]
         }
       },
       {
@@ -417,7 +545,7 @@
             348.0,
             60.0
           ],
-          "text": "Receives the 16-channel Ambisonics bus and acknowledges the destination without rejecting it based on Live device order."
+          "text": "Receives a named multichannel bus and acknowledges the destination without rejecting it based on Live device order."
         }
       },
       {
@@ -444,7 +572,7 @@
           "text": "Derived from Envelop for Live routing abstractions by Envelop; modified and namespaced by s3g under LGPL-2.1. See the bundled LICENSE.txt.",
           "patching_rect": [
             22.0,
-            724.0,
+            766.0,
             760.0,
             22.0
           ],
@@ -455,18 +583,6 @@
       }
     ],
     "lines": [
-      {
-        "patchline": {
-          "destination": [
-            "obj-33",
-            0
-          ],
-          "source": [
-            "obj-1",
-            0
-          ]
-        }
-      },
       {
         "patchline": {
           "destination": [
@@ -548,7 +664,7 @@
       {
         "patchline": {
           "destination": [
-            "obj-3",
+            "obj-bus-input-trigger",
             0
           ],
           "source": [
@@ -705,6 +821,84 @@
             "obj-19",
             0
           ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-1",
+            0
+          ],
+          "destination": [
+            "obj-track-ready-trigger",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-track-ready-trigger",
+            1
+          ],
+          "destination": [
+            "obj-33",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-track-ready-trigger",
+            0
+          ],
+          "destination": [
+            "obj-13",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-bus-input-trigger", 1],
+          "destination": ["obj-bus-change", 0]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-bus-input-trigger", 0],
+          "destination": ["obj-3", 0]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-bus-change", 0],
+          "destination": ["obj-prev-trigger", 0]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-prev-trigger", 1],
+          "destination": ["obj-prev-name", 0]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-prev-trigger", 0],
+          "destination": ["obj-prev-name", 1]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-prev-name", 0],
+          "destination": ["obj-prev-clear", 0]
+        }
+      },
+      {
+        "patchline": {
+          "source": ["obj-prev-clear", 0],
+          "destination": ["obj-prev-send", 0]
         }
       }
     ],

@@ -396,6 +396,25 @@
       },
       {
         "box": {
+          "id": "obj-s3g-stop-at-song",
+          "maxclass": "newobj",
+          "patching_rect": [
+            95.0,
+            265.0,
+            78.0,
+            22.0
+          ],
+          "text": "route Song",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
           "id": "obj-s3g-envelop-credit",
           "maxclass": "comment",
           "text": "Derived from Envelop for Live routing abstractions by Envelop; modified and namespaced by s3g under LGPL-2.1. See the bundled LICENSE.txt.",
@@ -445,18 +464,6 @@
           "source": [
             "obj-29",
             0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "destination": [
-            "obj-42",
-            0
-          ],
-          "source": [
-            "obj-29",
-            1
           ]
         }
       },
@@ -577,6 +584,30 @@
             0
           ],
           "source": [
+            "obj-42",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-29",
+            1
+          ],
+          "destination": [
+            "obj-s3g-stop-at-song",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-s3g-stop-at-song",
+            1
+          ],
+          "destination": [
             "obj-42",
             0
           ]

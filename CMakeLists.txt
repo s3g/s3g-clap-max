@@ -80,6 +80,13 @@ file(MAKE_DIRECTORY "${C74_LIBRARY_OUTPUT_DIRECTORY}")
 add_subdirectory(source/externals/s3g_clap_tilde)
 
 if(BUILD_TESTING)
+  add_executable(s3g_clap_state_codec_test
+    tests/s3g_clap_state_codec_test.cpp)
+  target_compile_features(s3g_clap_state_codec_test PRIVATE cxx_std_17)
+  target_include_directories(s3g_clap_state_codec_test PRIVATE host)
+  add_test(NAME s3g_clap_state_codec_test
+    COMMAND s3g_clap_state_codec_test)
+
   add_executable(s3g_clap_host_smoke
     tests/s3g_clap_host_smoke.cpp
     host/s3g_clap_discovery.cpp
