@@ -372,8 +372,12 @@ OUTPUT_AUTOGAIN_DEVICES = (
     "s3g Output Autogain Stereo",
     "s3g Output Autogain Quad Main",
 )
+RETIRED_GENERIC_DEVICES = (
+    "s3g 3OA Source", "s3g 3OA Insert", "s3g 3OA Decoder Main",
+)
 CURRENT_AMBI_DEVICES = tuple(
     name.replace("s3g 3OA", "s3g Ambi", 1) for name in EXPECTED
+    if name not in RETIRED_GENERIC_DEVICES
 )
 MAIN_DEVICES = (
     "s3g 3OA Decoder Main",
@@ -501,6 +505,27 @@ def validate_control_layout(device: str,
                     and y < oy + oh and oy < y + height):
                 raise ValueError(
                     f"{device}: {control['id']} overlaps {other['id']}"
+                )
+
+
+def validate_explicit_receive_layout(
+    device: str, boxes: dict[str, dict[str, object]],
+) -> None:
+    """New receive-handoff objects must remain readable in Max patching view."""
+    routing_objects = {
+        "obj-route-start", "obj-bus-insert", "obj-next-trigger",
+        "obj-next-mode", "obj-next-send",
+    }
+    for object_id in routing_objects & boxes.keys():
+        x, y, width, height = boxes[object_id]["patching_rect"]
+        for other_id, other in boxes.items():
+            if other_id == object_id:
+                continue
+            ox, oy, ow, oh = other["patching_rect"]
+            if (min(x + width, ox + ow) > max(x, ox)
+                    and min(y + height, oy + oh) > max(y, oy)):
+                raise ValueError(
+                    f"{device}: {object_id} overlaps {other_id} in Max patching view"
                 )
 
 
@@ -2215,6 +2240,8 @@ def validate_drum_device(name: str) -> None:
     if len(boxes) != len(patcher["boxes"]):
         raise ValueError(f"{name}: duplicate Max object IDs")
     validate_control_layout(name, boxes)
+    if name == "s3g Drum Mixer 16":
+        validate_explicit_receive_layout(name, boxes)
     line_pairs = {
         (tuple(entry["patchline"]["source"]),
          tuple(entry["patchline"]["destination"]))
@@ -2299,20 +2326,26 @@ def validate_drum_device(name: str) -> None:
                 f"automateparamid {parameter_id} $1"):
             raise ValueError(f"{name}: parameter {parameter_id} is not automatable")
     if is_mixer:
-        if (boxes["obj-bus-receive"].get("text") !=
-                "s3g.bus.receive s3g-drum16-1"
-                or boxes["obj-input-bus-symbol"].get("text") !=
-                "sprintf s3g-drum16-%ld"
-                or boxes["obj-plugout"].get("numinlets") != 18):
-            raise ValueError(f"{name}: dedicated Drum receive is incomplete")
-        validate_routing_menu(name, boxes, line_pairs, "obj-input-bus-number")
-        validate_bus_menu_replay(name, boxes, line_pairs,
-                                 "obj-input-bus-number",
-                                 "obj-input-bus-init-defer",
-                                 "obj-input-bus-output")
+        if (boxes["obj-plugin"].get("numoutlets") != 38
+                or boxes["obj-plugout"].get("numinlets") != 38
+                or boxes["obj-bus-insert"].get("text") != "s3g.bus.insert"
+                or boxes["obj-next-send"].get("text") !=
+                "s3g.bus.send s3g-chain-next"
+                or boxes["obj-route-start"].get("text") != "t l l"
+                or boxes["obj-next-trigger"].get("text") != "t l b"
+                or boxes["obj-next-mode"].get("text") != "1"
+                or any(object_id.startswith("obj-input-bus-")
+                       for object_id in boxes)
+                or "obj-bus-receive" in boxes
+                or "obj-input-bus-number" in patcher["parameters"]):
+            raise ValueError(f"{name}: explicit Bus Receive 36 path is incomplete")
         expected_lines = {
-            (("obj-device", 0), ("obj-bus-receive", 0)),
-            (("obj-input-bus-symbol", 0), ("obj-bus-receive", 1)),
+            (("obj-device", 0), ("obj-route-start", 0)),
+            (("obj-route-start", 1), ("obj-bus-insert", 0)),
+            (("obj-route-start", 0), ("obj-next-trigger", 0)),
+            (("obj-next-trigger", 1), ("obj-next-mode", 0)),
+            (("obj-next-mode", 0), ("obj-next-send", 1)),
+            (("obj-next-trigger", 0), ("obj-next-send", 0)),
             (("obj-clap", 0), ("obj-plugout", 0)),
             (("obj-clap", 1), ("obj-plugout", 1)),
         }
@@ -2325,7 +2358,7 @@ def validate_drum_device(name: str) -> None:
             for channel in range(16)
         )
         if expected_lines - line_pairs:
-            raise ValueError(f"{name}: Drum bus-to-CLAP mapping is incomplete")
+            raise ValueError(f"{name}: Bus Receive 36 to Drum CLAP path is incomplete")
         if any((("obj-plugin", channel), ("obj-clap", channel)) in line_pairs
                for channel in (0, 1)):
             raise ValueError(f"{name}: Live stereo leaks into the Drum mixer")
@@ -2479,30 +2512,32 @@ def validate_panner_main(name: str) -> None:
     if len(boxes) != len(patcher["boxes"]):
         raise ValueError(f"{name}: duplicate Max object IDs")
     validate_control_layout(name, boxes)
+    validate_explicit_receive_layout(name, boxes)
     validate_action_button(name, "EDITOR", boxes["obj-gui-button"])
     validate_action_button(name, "HARDWARE", boxes["obj-hardware-button"])
     if (boxes["obj-default-open"].get("text") !=
             f'openifempty "s3g Panner {kind} 64" {PANNER_MAIN_IDS[kind]}'
-            or boxes["obj-clap"].get("text") != "s3g.clap~ 32 32"
-            or boxes["obj-plugin"].get("numoutlets") != 34
+            or boxes["obj-clap"].get("text") != "s3g.clap~ 36 32"
+            or boxes["obj-plugin"].get("numoutlets") != 38
             or boxes["obj-plugout"].get("numinlets") != 34
-            or boxes["obj-bus-receive"].get("text") !=
-            "s3g.bus.receive s3g-multichannel-1"
-            or boxes["obj-input-bus-symbol"].get("text") !=
-            "sprintf s3g-multichannel-%ld"):
-        raise ValueError(f"{name}: wrong Panner CLAP or private bus topology")
+            or boxes["obj-bus-insert"].get("text") != "s3g.bus.insert"
+            or any(object_id.startswith("obj-input-bus-")
+                   for object_id in boxes)
+            or "obj-bus-receive" in boxes
+            or "obj-input-bus-number" in patcher["parameters"]):
+        raise ValueError(f"{name}: wrong Panner CLAP or explicit bus topology")
     gain = boxes["obj-panner-input-gain"]
     if (gain.get("maxclass") != "live.gain~"
-            or gain.get("channels") != 32
-            or gain.get("numinlets") != 32
-            or gain.get("numoutlets") != 35
+            or gain.get("channels") != 36
+            or gain.get("numinlets") != 36
+            or gain.get("numoutlets") != 39
             or gain.get("parameter_enable") != 1
             or gain.get("ignoreclick") != 0
             or gain.get("shownumber") != 1
-            or gain.get("presentation_rect") != [16.0, 66.0, 168.0, 68.0]
+            or gain.get("presentation_rect") != [12.0, 38.0, 172.0, 120.0]
             or patcher["parameters"].get("obj-panner-input-gain") !=
             ["Panner Input Gain", "Input Gain", 0]):
-        raise ValueError(f"{name}: 32-lane input gain is missing or unsaved")
+        raise ValueError(f"{name}: 36-lane input gain is missing or unsaved")
     if (boxes["obj-mono-matrix"].get("text") !=
             "matrix~ 32 32 1. @ramp 5."
             or boxes["obj-mono-grid"].get("presentation_rect") !=
@@ -2517,26 +2552,24 @@ def validate_panner_main(name: str) -> None:
          tuple(entry["patchline"]["destination"]))
         for entry in patcher["lines"]
     }
-    validate_routing_menu(name, boxes, lines, "obj-input-bus-number")
-    validate_bus_menu_replay(name, boxes, lines, "obj-input-bus-number",
-                             "obj-input-bus-init-defer", "obj-input-bus-output")
     required = {
         (("obj-device", 0), ("obj-device-split", 0)),
-        (("obj-device-split", 0), ("obj-bus-receive", 0)),
-        (("obj-device-split", 1), ("obj-once", 0)),
+        (("obj-device-split", 1), ("obj-bus-insert", 0)),
+        (("obj-device-split", 0), ("obj-once", 0)),
         (("obj-once", 0), ("obj-output-init", 0)),
-        (("obj-input-bus-number", 0), ("obj-input-bus-symbol", 0)),
-        (("obj-input-bus-symbol", 0), ("obj-bus-receive", 1)),
         (("obj-hardware-button", 0), ("obj-hardware-open", 0)),
         (("obj-hardware-open", 0), ("obj-hardware-pcontrol", 0)),
         (("obj-hardware-pcontrol", 0), ("obj-hardware-routing", 0)),
         (("obj-device", 0), ("obj-hardware-routing", 0)),
     }
-    for channel in range(32):
+    for channel in range(36):
         required.update({
             (("obj-plugin", channel + 2),
              ("obj-panner-input-gain", channel)),
             (("obj-panner-input-gain", channel), ("obj-clap", channel)),
+        })
+    for channel in range(32):
+        required.update({
             (("obj-clap", channel), ("obj-mono-matrix", channel)),
             (("obj-mono-matrix", channel), ("obj-plugout", channel + 2)),
         })
@@ -2587,6 +2620,7 @@ def validate_output_autogain(name: str) -> None:
     if len(boxes) != len(patcher["boxes"]):
         raise ValueError(f"{name}: duplicate Max object IDs")
     validate_control_layout(name, boxes)
+    validate_explicit_receive_layout(name, boxes)
     validate_action_button(name, "EDITOR", boxes["obj-gui-button"])
     plugin_name = ("s3g Output Autogain Quad 4" if quad else
                    "s3g Output Autogain Stereo 2")
@@ -2595,40 +2629,34 @@ def validate_output_autogain(name: str) -> None:
     if (boxes["obj-default-open"].get("text") !=
             f'openifempty "{plugin_name}" {plugin_id}'
             or boxes["obj-clap"].get("text") !=
-            ("s3g.clap~ 32 4" if quad else "s3g.clap~ 32 2")
-            or boxes["obj-plugin"].get("numoutlets") != 34
+            ("s3g.clap~ 36 4" if quad else "s3g.clap~ 36 2")
+            or boxes["obj-plugin"].get("numoutlets") != 38
             or boxes["obj-plugout"].get("numinlets") != (34 if quad else 2)
-            or boxes["obj-bus-receive"].get("text") !=
-            "s3g.bus.receive s3g-multichannel-1"
-            or boxes["obj-input-bus-symbol"].get("text") !=
-            "sprintf s3g-multichannel-%ld"
+            or boxes["obj-bus-insert"].get("text") != "s3g.bus.insert"
+            or any(object_id.startswith("obj-input-bus-")
+                   for object_id in boxes)
+            or "obj-bus-receive" in boxes
+            or "obj-input-bus-number" in patcher["parameters"]
             or boxes["obj-clap-state"].get("saved_object_attributes", {}).get(
                 "parameter_enable") != 1):
         raise ValueError(f"{name}: CLAP identity, state, or bus topology is wrong")
     gain = boxes["obj-autogain-input-gain"]
     if (gain.get("maxclass") != "live.gain~"
-            or gain.get("channels") != 32
-            or gain.get("numinlets") != 32
-            or gain.get("numoutlets") != 35
+            or gain.get("channels") != 36
+            or gain.get("numinlets") != 36
+            or gain.get("numoutlets") != 39
             or gain.get("ignoreclick") != 0
-            or gain.get("presentation_rect") != [16.0, 66.0, 168.0, 68.0]
+            or gain.get("presentation_rect") != [12.0, 38.0, 172.0, 120.0]
             or patcher["parameters"].get("obj-autogain-input-gain") !=
             ["Output AutoGain Input Gain", "Input Gain", 0]):
-        raise ValueError(f"{name}: linked 32-channel input gain is missing")
+        raise ValueError(f"{name}: linked 36-channel input gain is missing")
     lines = {
         (tuple(entry["patchline"]["source"]),
          tuple(entry["patchline"]["destination"]))
         for entry in patcher["lines"]
     }
-    validate_routing_menu(name, boxes, lines, "obj-input-bus-number")
-    validate_bus_menu_replay(name, boxes, lines, "obj-input-bus-number",
-                             "obj-input-bus-init-defer", "obj-input-bus-output")
-    required = {
-        (("obj-input-bus-number", 0), ("obj-input-bus-symbol", 0)),
-        (("obj-input-bus-symbol", 0), ("obj-bus-receive", 1)),
-        (("obj-input-bus-output", 0), ("obj-input-bus-number", 0)),
-    }
-    for channel in range(32):
+    required = set()
+    for channel in range(36):
         required.update({
             (("obj-plugin", channel + 2),
              ("obj-autogain-input-gain", channel)),
@@ -2647,8 +2675,8 @@ def validate_output_autogain(name: str) -> None:
             raise ValueError(f"{name}: fewer than sixteen hardware pairs")
         required.update({
             (("obj-device", 0), ("obj-device-split", 0)),
-            (("obj-device-split", 0), ("obj-bus-receive", 0)),
-            (("obj-device-split", 1), ("obj-once", 0)),
+            (("obj-device-split", 1), ("obj-bus-insert", 0)),
+            (("obj-device-split", 0), ("obj-once", 0)),
             (("obj-once", 0), ("obj-output-init", 0)),
             (("obj-device", 0), ("obj-hardware-routing", 0)),
             (("obj-hardware-button", 0), ("obj-hardware-open", 0)),
@@ -2683,7 +2711,7 @@ def validate_output_autogain(name: str) -> None:
             required.update(((gate, slot), ("obj-plugout", slot + 2))
                             for slot in range(32))
     else:
-        required.add((("obj-device", 0), ("obj-bus-receive", 0)))
+        required.add((("obj-device", 0), ("obj-bus-insert", 0)))
         required.update((("obj-clap", channel), ("obj-plugout", channel))
                         for channel in range(2))
         if any(object_id.startswith("obj-quad-output")
@@ -2710,6 +2738,8 @@ def validate_output_autogain(name: str) -> None:
 
 def main() -> int:
     for name, values in EXPECTED.items():
+        if name in RETIRED_GENERIC_DEVICES:
+            continue
         validate(name, *values)
     for name in DRUM_DEVICES:
         validate_drum_device(name)
@@ -2721,6 +2751,11 @@ def main() -> int:
     for name in OUTPUT_AUTOGAIN_DEVICES:
         validate_output_autogain(name)
     for directory, suffix in ((SOURCE_DIR, ".maxpat"), (DEVICE_DIR, ".amxd")):
+        retired = [directory / f"{name}{suffix}"
+                   for name in RETIRED_GENERIC_DEVICES
+                   if (directory / f"{name}{suffix}").exists()]
+        if retired:
+            raise ValueError(f"retired general-purpose devices remain: {retired}")
         old_names = list(directory.glob(f"s3g CLAP 3OA *{suffix}"))
         old_names.extend(
             directory / f"{name}{suffix}"
@@ -2746,6 +2781,11 @@ def main() -> int:
             "Live installer omits generated devices: "
             + ", ".join(missing_installer_devices)
         )
+    retired_generic_devices = (
+        "s3g Ambi Source", "s3g Ambi Insert", "s3g Ambi Decoder Main",
+    )
+    if any(f'"{name}.amxd"' in installer for name in retired_generic_devices):
+        raise ValueError("Live installer still includes retired generic devices")
     if ("s3g CLAP 3OA" in installer or '"s3g 3OA ' in installer
             or "legacy_devices" in installer
             or '"s3g 3OA Main Out.amxd"' in installer
@@ -2923,7 +2963,7 @@ def main() -> int:
         raise ValueError("hardware routing menu is clipped or undersized")
     if selector_boxes["obj-11"].get("presentation_rect") != [0.0, 0.0, 100.0, 20.0]:
         raise ValueError("output routing menu background has unexpected bounds")
-    print(f"validated {len(EXPECTED) + len(ROUTING_DEVICES) + len(DRUM_DEVICES) + len(SAMPLE_INSTRUMENTS) + 1 + len(PANNER_MAIN_DEVICES) + len(OUTPUT_AUTOGAIN_DEVICES)} generated M4L devices and native s3g routing layer")
+    print(f"validated {len(CURRENT_AMBI_DEVICES) + len(ROUTING_DEVICES) + len(DRUM_DEVICES) + len(SAMPLE_INSTRUMENTS) + 1 + len(PANNER_MAIN_DEVICES) + len(OUTPUT_AUTOGAIN_DEVICES)} installed M4L devices and native s3g routing layer")
     return 0
 
 

@@ -1649,16 +1649,19 @@ def ambisonic_input_gain() -> dict[str, object]:
 
 
 def panner_input_gain() -> dict[str, object]:
-    """One linked, automatable gain for the 32 ordinary source lanes."""
+    """One linked, automatable gain for the 36 received source lanes."""
     gain = ambisonic_input_gain()
     control = gain["box"]
     control["id"] = "obj-panner-input-gain"
-    control["channels"] = MULTICHANNEL_SLOT_COUNT
-    control["numinlets"] = MULTICHANNEL_SLOT_COUNT
-    control["numoutlets"] = MULTICHANNEL_SLOT_COUNT + 3
+    control["channels"] = FIFTH_ORDER_SLOT_COUNT
+    control["numinlets"] = FIFTH_ORDER_SLOT_COUNT
+    control["numoutlets"] = FIFTH_ORDER_SLOT_COUNT + 3
     control["outlettype"] = (
-        ["signal"] * MULTICHANNEL_SLOT_COUNT + ["", "float", "list"]
+        ["signal"] * FIFTH_ORDER_SLOT_COUNT + ["", "float", "list"]
     )
+    # With the bus menu gone, use the left column for a full-height fader.
+    # The extra height keeps the triangle draggable with 36 meter lanes.
+    control["presentation_rect"] = [12.0, 38.0, 172.0, 120.0]
     control["varname"] = "panner_input_gain"
     value = control["saved_attribute_attributes"]["valueof"]
     value["parameter_longname"] = "Panner Input Gain"
@@ -1667,7 +1670,7 @@ def panner_input_gain() -> dict[str, object]:
 
 
 def autogain_input_gain() -> dict[str, object]:
-    """A linked 32-lane input trim before an Output AutoGain CLAP."""
+    """A linked 36-lane input trim before an Output AutoGain CLAP."""
     gain = panner_input_gain()
     control = gain["box"]
     control["id"] = "obj-autogain-input-gain"
@@ -3868,7 +3871,7 @@ def sample_circulator_device() -> dict[str, object]:
 
 
 def drum_mixer_device() -> dict[str, object]:
-    """Receive eight stereo Drum pairs; expose sum and direct aux outputs."""
+    """Mix the first 16 slots from a preceding Bus Receive 36."""
     name = "s3g Drum Mixer 16"
     plugin_name = "s3g Drum Mixer 16"
     plugin_id = "org.s3g.s3g-dsp.drum-mixer-16"
@@ -3883,32 +3886,29 @@ def drum_mixer_device() -> dict[str, object]:
     boxes = common_ui(False, COMPACT_DEVICE_HEIGHT,
                       allow_plugin_picker=False)
     boxes.extend([
-        box("obj-input-bus-label", "comment", [84.0, 10.0, 52.0, 20.0],
-            text="RCV BUS", presentation_rect=[84.0, 10.0, 52.0, 20.0],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM),
-        *routing_menu_controls("obj-input-bus-number", "Drum Input Bus",
-                               "Input Bus", 1, 16, 1, 142.0),
         new_object("obj-plugin", "plugin~ " + " ".join(
-            str(i) for i in range(1, DRUM_SLOT_COUNT + 3)
-        ), 40.0, 180.0, 370.0, DRUM_SLOT_COUNT + 2,
-                   DRUM_SLOT_COUNT + 2, ["signal"] * (DRUM_SLOT_COUNT + 2)),
+            str(i) for i in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1)
+        ), 40.0, 180.0, 610.0, FIFTH_ORDER_LIVE_CHANNELS,
+                   FIFTH_ORDER_LIVE_CHANNELS,
+                   ["signal"] * FIFTH_ORDER_LIVE_CHANNELS),
         clap_box("s3g.clap~ 16 16", 125.0, 300.0, 16, 16),
         new_object("obj-plugout", "plugout~ " + " ".join(
-            str(i) for i in range(1, DRUM_SLOT_COUNT + 3)
-        ), 40.0, 365.0, 370.0, DRUM_SLOT_COUNT + 2,
-                   DRUM_SLOT_COUNT + 2, ["signal"] * (DRUM_SLOT_COUNT + 2)),
+            str(i) for i in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1)
+        ), 40.0, 365.0, 610.0, FIFTH_ORDER_LIVE_CHANNELS,
+                   FIFTH_ORDER_LIVE_CHANNELS,
+                   ["signal"] * FIFTH_ORDER_LIVE_CHANNELS),
         new_object("obj-device", "s3g.live.thisdevice", 470.0, 180.0,
                    125.0, 1, 1),
-        new_object("obj-bus-receive", f"s3g.bus.receive {DRUM_BUS_PREFIX}-1",
-                   470.0, 215.0, 215.0, 2, 1),
-        new_object("obj-input-bus-symbol", f"sprintf {DRUM_BUS_PREFIX}-%ld",
-                   470.0, 250.0, 180.0, 1, 1),
-        new_object("obj-input-bus-init", "loadbang", 680.0, 215.0,
-                   65.0, 1, 1, ["bang"]),
-        new_object("obj-input-bus-init-defer", "deferlow", 680.0, 250.0,
-                   58.0, 1, 1),
-        box("obj-input-bus-output", "message", [680.0, 285.0, 78.0, 22.0],
-            text="outputvalue"),
+        new_object("obj-route-start", "t l l", 470.0, 215.0,
+                   42.0, 1, 2, ["list", "list"]),
+        new_object("obj-bus-insert", "s3g.bus.insert", 470.0, 255.0,
+                   100.0, 1, 0),
+        new_object("obj-next-trigger", "t l b", 600.0, 255.0,
+                   48.0, 1, 2, ["list", "bang"]),
+        box("obj-next-mode", "message", [660.0, 255.0, 30.0, 22.0],
+            text="1"),
+        new_object("obj-next-send", "s3g.bus.send s3g-chain-next",
+                   600.0, 300.0, 220.0, 3, 0),
     ])
     runtime_boxes, runtime_lines = common_runtime(
         16, plugin_name, allow_plugin_picker=False, fixed_parameters=True,
@@ -3916,37 +3916,27 @@ def drum_mixer_device() -> dict[str, object]:
     )
     parameter_boxes, parameter_lines = fixed_parameter_runtime(parameters, ())
     boxes.extend((*runtime_boxes, *parameter_boxes))
-    replay_boxes, replay_lines = bus_menu_replay_controls(
-        "obj-input-bus-number", "obj-input-bus-init-defer",
-        "obj-input-bus-output", 780.0, 335.0,
-    )
-    boxes.extend(replay_boxes)
     lines = [
-        line("obj-device", 0, "obj-bus-receive", 0),
-        line("obj-input-bus-number", 0, "obj-input-bus-symbol", 0),
-        line("obj-input-bus-symbol", 0, "obj-bus-receive", 1),
-        line("obj-input-bus-init", 0, "obj-input-bus-init-defer", 0),
-        line("obj-input-bus-init-defer", 0, "obj-input-bus-output", 0),
-        line("obj-input-bus-output", 0, "obj-input-bus-number", 0),
+        line("obj-device", 0, "obj-route-start", 0),
+        line("obj-route-start", 1, "obj-bus-insert", 0),
+        line("obj-route-start", 0, "obj-next-trigger", 0),
+        line("obj-next-trigger", 1, "obj-next-mode", 0),
+        line("obj-next-mode", 0, "obj-next-send", 1),
+        line("obj-next-trigger", 0, "obj-next-send", 0),
         *(line("obj-plugin", channel + 2, "obj-clap", channel)
           for channel in range(DRUM_SLOT_COUNT)),
         *(line("obj-clap", channel, "obj-plugout", channel + 2)
           for channel in range(DRUM_SLOT_COUNT)),
         line("obj-clap", 0, "obj-plugout", 0),
         line("obj-clap", 1, "obj-plugout", 1),
-        *replay_lines,
-        *routing_menu_lines("obj-input-bus-number", guarded_write=True),
         *runtime_lines, *parameter_lines,
     ]
     document = patcher(
-        name, "Receives a private 16-channel Drum bus as eight stereo lanes. "
-        "Sum output reaches Live stereo; direct-mode lanes also reach the "
-        "16 auxiliary device-chain channels.",
+        name, "Reads the first 16 slots from the preceding s3g Bus Receive 36 "
+        "as eight stereo Drum lanes. Sum reaches Live stereo; direct-mode "
+        "lanes can feed the next device or s3g Bus Send 36.",
         boxes, lines, False, minimum_width=DRUM_SAMPLE_MINIMUM_WIDTH,
     )
-    document["patcher"]["parameters"]["obj-input-bus-number"] = [
-        "Drum Input Bus", "Input Bus", 0,
-    ]
     register_fixed_parameters(document, parameters)
     return document
 
@@ -4337,25 +4327,18 @@ def multichannel_decoder_main_device(
 
 
 def panner_main_device(kind: str, plugin_id: str) -> dict[str, object]:
-    """Receive 32 ordinary source lanes and route 32 speaker feeds to Live."""
+    """Read 36 received lanes and route 32 speaker feeds to hardware."""
     name = f"s3g Panner {kind} Main"
     plugin_name = f"s3g Panner {kind} 64"
     boxes = main_out_ui(allow_plugin_picker=False)
     boxes.extend([
-        box("obj-input-bus-label", "comment", [16.0, 38.0, 56.0, 20.0],
-            text="RCV BUS", presentation_rect=[16.0, 38.0, 56.0, 20.0],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM),
-        *routing_menu_controls(
-            "obj-input-bus-number", "Multichannel Input Bus", "Input Bus",
-            1, 16, 1, 78.0, width=48.0, y=38.0,
-        ),
         new_object("obj-plugin", "plugin~ " + " ".join(
-            str(i) for i in range(1, MULTICHANNEL_LIVE_CHANNELS + 1)
-        ), 40.0, 180.0, 610.0, MULTICHANNEL_LIVE_CHANNELS,
-                   MULTICHANNEL_LIVE_CHANNELS,
-                   ["signal"] * MULTICHANNEL_LIVE_CHANNELS),
+            str(i) for i in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1)
+        ), 40.0, 180.0, 610.0, FIFTH_ORDER_LIVE_CHANNELS,
+                   FIFTH_ORDER_LIVE_CHANNELS,
+                   ["signal"] * FIFTH_ORDER_LIVE_CHANNELS),
         panner_input_gain(),
-        clap_box("s3g.clap~ 32 32", 125.0, 300.0, 32, 32),
+        clap_box("s3g.clap~ 36 32", 125.0, 300.0, 36, 32),
         new_object("obj-plugout", "plugout~ " + " ".join(
             str(i) for i in range(1, MULTICHANNEL_LIVE_CHANNELS + 1)
         ), 40.0, 365.0, 610.0, MULTICHANNEL_LIVE_CHANNELS,
@@ -4368,16 +4351,8 @@ def panner_main_device(kind: str, plugin_id: str) -> dict[str, object]:
         new_object("obj-once", "s3g.live.once", 560.0, 260.0,
                    90.0, 1, 1),
         output_initializer_box(),
-        new_object("obj-bus-receive", "s3g.bus.receive s3g-multichannel-1",
-                   470.0, 230.0, 225.0, 2, 1),
-        new_object("obj-input-bus-symbol", "sprintf s3g-multichannel-%ld",
-                   470.0, 250.0, 180.0, 1, 1),
-        new_object("obj-input-bus-init", "loadbang", 680.0, 215.0,
-                   65.0, 1, 1, ["bang"]),
-        new_object("obj-input-bus-init-defer", "deferlow", 680.0, 250.0,
-                   58.0, 1, 1),
-        box("obj-input-bus-output", "message", [680.0, 285.0, 78.0, 22.0],
-            text="outputvalue"),
+        new_object("obj-bus-insert", "s3g.bus.insert", 650.0, 230.0,
+                   100.0, 1, 0),
         hardware_output_popup(),
     ])
     mono_boxes, mono_lines = mono_output_controls("Panner")
@@ -4391,21 +4366,11 @@ def panner_main_device(kind: str, plugin_id: str) -> dict[str, object]:
     )
     boxes.extend(runtime_boxes)
     boxes.extend(parameter_boxes)
-    replay_boxes, replay_lines = bus_menu_replay_controls(
-        "obj-input-bus-number", "obj-input-bus-init-defer",
-        "obj-input-bus-output", 780.0, 335.0,
-    )
-    boxes.extend(replay_boxes)
     lines = [
         line("obj-device", 0, "obj-device-split", 0),
-        line("obj-device-split", 0, "obj-bus-receive", 0),
-        line("obj-device-split", 1, "obj-once", 0),
+        line("obj-device-split", 1, "obj-bus-insert", 0),
+        line("obj-device-split", 0, "obj-once", 0),
         line("obj-once", 0, "obj-output-init", 0),
-        line("obj-input-bus-number", 0, "obj-input-bus-symbol", 0),
-        line("obj-input-bus-symbol", 0, "obj-bus-receive", 1),
-        line("obj-input-bus-init", 0, "obj-input-bus-init-defer", 0),
-        line("obj-input-bus-init-defer", 0, "obj-input-bus-output", 0),
-        line("obj-input-bus-output", 0, "obj-input-bus-number", 0),
         line("obj-device", 0, "obj-hardware-routing", 0),
         line("obj-hardware-button", 0, "obj-hardware-open", 0),
         line("obj-hardware-open", 0, "obj-hardware-pcontrol", 0),
@@ -4413,9 +4378,9 @@ def panner_main_device(kind: str, plugin_id: str) -> dict[str, object]:
     ]
     lines.extend(line("obj-plugin", channel + 2,
                       "obj-panner-input-gain", channel)
-                 for channel in range(MULTICHANNEL_SLOT_COUNT))
+                 for channel in range(FIFTH_ORDER_SLOT_COUNT))
     lines.extend(line("obj-panner-input-gain", channel, "obj-clap", channel)
-                 for channel in range(MULTICHANNEL_SLOT_COUNT))
+                 for channel in range(FIFTH_ORDER_SLOT_COUNT))
     lines.extend(line("obj-clap", channel, "obj-mono-matrix", channel)
                  for channel in range(MULTICHANNEL_SLOT_COUNT))
     lines.extend(line("obj-mono-matrix", channel, "obj-plugout", channel + 2)
@@ -4423,19 +4388,14 @@ def panner_main_device(kind: str, plugin_id: str) -> dict[str, object]:
     lines.extend(mono_lines)
     lines.extend(runtime_lines)
     lines.extend(parameter_lines)
-    lines.extend(replay_lines)
-    lines.extend(routing_menu_lines("obj-input-bus-number", guarded_write=True))
     document = patcher(
         name,
-        f"Fixed {plugin_name}: receives the generic 32-channel bus, "
-        "processes source inputs 1–32, and maps speaker outputs 1–32 "
-        "through the mono matrix to hardware pairs. CLAP lanes 33–64 "
-        "are outside the current Max for Live routing endpoint.",
+        f"Fixed {plugin_name}: reads 36 slots from a preceding s3g Bus "
+        "Receive 36, processes source inputs 1–36, and maps speaker outputs 1–32 "
+        "through the mono matrix to hardware pairs. Source inputs 37–64 and "
+        "speaker outputs 33–64 are outside this Live endpoint.",
         boxes, lines, False, MAIN_OUT_DEVICE_HEIGHT,
     )
-    document["patcher"]["parameters"]["obj-input-bus-number"] = [
-        "Multichannel Input Bus", "Input Bus", 0,
-    ]
     document["patcher"]["parameters"]["obj-panner-input-gain"] = [
         "Panner Input Gain", "Input Gain", 0,
     ]
@@ -4448,38 +4408,23 @@ def panner_main_device(kind: str, plugin_id: str) -> dict[str, object]:
 
 
 def output_autogain_stereo_device() -> dict[str, object]:
-    """Fold the generic 32-channel bus into normal Live stereo output."""
+    """Fold 36 received channels into normal Live stereo output."""
     name = "s3g Output Autogain Stereo"
     boxes = common_ui(False, COMPACT_DEVICE_HEIGHT, allow_plugin_picker=False)
     boxes.extend([
-        box("obj-input-bus-label", "comment", [16.0, 38.0, 56.0, 20.0],
-            text="RCV BUS", presentation_rect=[16.0, 38.0, 56.0, 20.0],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM),
-        *routing_menu_controls(
-            "obj-input-bus-number", "Multichannel Input Bus", "Input Bus",
-            1, 16, 1, 78.0, width=48.0, y=38.0,
-        ),
         new_object("obj-plugin", "plugin~ " + " ".join(
-            str(i) for i in range(1, MULTICHANNEL_LIVE_CHANNELS + 1)
-        ), 40.0, 180.0, 610.0, MULTICHANNEL_LIVE_CHANNELS,
-                   MULTICHANNEL_LIVE_CHANNELS,
-                   ["signal"] * MULTICHANNEL_LIVE_CHANNELS),
+            str(i) for i in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1)
+        ), 40.0, 180.0, 610.0, FIFTH_ORDER_LIVE_CHANNELS,
+                   FIFTH_ORDER_LIVE_CHANNELS,
+                   ["signal"] * FIFTH_ORDER_LIVE_CHANNELS),
         autogain_input_gain(),
-        clap_box("s3g.clap~ 32 2", 125.0, 300.0, 32, 2),
+        clap_box("s3g.clap~ 36 2", 125.0, 300.0, 36, 2),
         new_object("obj-plugout", "plugout~ 1 2", 40.0, 365.0,
                    105.0, 2, 2, ["signal", "signal"]),
         new_object("obj-device", "s3g.live.thisdevice", 470.0, 180.0,
                    125.0, 1, 1),
-        new_object("obj-bus-receive", "s3g.bus.receive s3g-multichannel-1",
-                   470.0, 230.0, 225.0, 2, 1),
-        new_object("obj-input-bus-symbol", "sprintf s3g-multichannel-%ld",
-                   470.0, 250.0, 180.0, 1, 1),
-        new_object("obj-input-bus-init", "loadbang", 680.0, 215.0,
-                   65.0, 1, 1, ["bang"]),
-        new_object("obj-input-bus-init-defer", "deferlow", 680.0, 250.0,
-                   58.0, 1, 1),
-        box("obj-input-bus-output", "message", [680.0, 285.0, 78.0, 22.0],
-            text="outputvalue"),
+        new_object("obj-bus-insert", "s3g.bus.insert", 650.0, 230.0,
+                   100.0, 1, 0),
     ])
     runtime_boxes, runtime_lines = common_runtime(
         2, "s3g Output Autogain Stereo 2", allow_plugin_picker=False,
@@ -4489,38 +4434,26 @@ def output_autogain_stereo_device() -> dict[str, object]:
     parameter_boxes, parameter_lines = fixed_parameter_runtime(
         OUTPUT_AUTOGAIN_PARAMETERS, (),
     )
-    replay_boxes, replay_lines = bus_menu_replay_controls(
-        "obj-input-bus-number", "obj-input-bus-init-defer",
-        "obj-input-bus-output", 780.0, 335.0,
-    )
-    boxes.extend(runtime_boxes + parameter_boxes + replay_boxes)
+    boxes.extend(runtime_boxes + parameter_boxes)
     lines = [
-        line("obj-device", 0, "obj-bus-receive", 0),
-        line("obj-input-bus-number", 0, "obj-input-bus-symbol", 0),
-        line("obj-input-bus-symbol", 0, "obj-bus-receive", 1),
-        line("obj-input-bus-init", 0, "obj-input-bus-init-defer", 0),
-        line("obj-input-bus-init-defer", 0, "obj-input-bus-output", 0),
-        line("obj-input-bus-output", 0, "obj-input-bus-number", 0),
+        line("obj-device", 0, "obj-bus-insert", 0),
     ]
     lines.extend(line("obj-plugin", channel + 2,
                       "obj-autogain-input-gain", channel)
-                 for channel in range(MULTICHANNEL_SLOT_COUNT))
+                 for channel in range(FIFTH_ORDER_SLOT_COUNT))
     lines.extend(line("obj-autogain-input-gain", channel, "obj-clap", channel)
-                 for channel in range(MULTICHANNEL_SLOT_COUNT))
+                 for channel in range(FIFTH_ORDER_SLOT_COUNT))
     lines.extend(line("obj-clap", channel, "obj-plugout", channel)
                  for channel in range(2))
-    lines.extend(runtime_lines + parameter_lines + replay_lines)
-    lines.extend(routing_menu_lines("obj-input-bus-number", guarded_write=True))
+    lines.extend(runtime_lines + parameter_lines)
     document = patcher(
         name,
-        "Receives 32 generic bus channels, folds them through fixed Output "
+        "Reads 36 channels from the preceding s3g Bus Receive 36, folds them "
+        "through fixed Output "
         "Autogain Stereo 2, and returns two channels to the normal Live track "
-        "output. CLAP source channels 33–128 have no Live bus feed.",
+        "output. CLAP source channels 37–128 have no Live bus feed.",
         boxes, lines, False, COMPACT_DEVICE_HEIGHT,
     )
-    document["patcher"]["parameters"]["obj-input-bus-number"] = [
-        "Multichannel Input Bus", "Input Bus", 0,
-    ]
     document["patcher"]["parameters"]["obj-autogain-input-gain"] = [
         "Output AutoGain Input Gain", "Input Gain", 0,
     ]
@@ -4529,24 +4462,17 @@ def output_autogain_stereo_device() -> dict[str, object]:
 
 
 def output_autogain_quad_main_device() -> dict[str, object]:
-    """Fold the generic bus to four independently routed hardware outputs."""
+    """Fold 36 received lanes to four routed hardware outputs."""
     name = "s3g Output Autogain Quad Main"
     boxes = main_out_ui(allow_plugin_picker=False)
     boxes.extend([
-        box("obj-input-bus-label", "comment", [16.0, 38.0, 56.0, 20.0],
-            text="RCV BUS", presentation_rect=[16.0, 38.0, 56.0, 20.0],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM),
-        *routing_menu_controls(
-            "obj-input-bus-number", "Multichannel Input Bus", "Input Bus",
-            1, 16, 1, 78.0, width=48.0, y=38.0,
-        ),
         new_object("obj-plugin", "plugin~ " + " ".join(
-            str(i) for i in range(1, MULTICHANNEL_LIVE_CHANNELS + 1)
-        ), 40.0, 180.0, 610.0, MULTICHANNEL_LIVE_CHANNELS,
-                   MULTICHANNEL_LIVE_CHANNELS,
-                   ["signal"] * MULTICHANNEL_LIVE_CHANNELS),
+            str(i) for i in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1)
+        ), 40.0, 180.0, 610.0, FIFTH_ORDER_LIVE_CHANNELS,
+                   FIFTH_ORDER_LIVE_CHANNELS,
+                   ["signal"] * FIFTH_ORDER_LIVE_CHANNELS),
         autogain_input_gain(),
-        clap_box("s3g.clap~ 32 4", 125.0, 300.0, 32, 4),
+        clap_box("s3g.clap~ 36 4", 125.0, 300.0, 36, 4),
         new_object("obj-plugout", "plugout~ " + " ".join(
             str(i) for i in range(1, MULTICHANNEL_LIVE_CHANNELS + 1)
         ), 40.0, 365.0, 610.0, MULTICHANNEL_LIVE_CHANNELS,
@@ -4559,16 +4485,8 @@ def output_autogain_quad_main_device() -> dict[str, object]:
         new_object("obj-once", "s3g.live.once", 560.0, 260.0,
                    90.0, 1, 1),
         output_initializer_box(),
-        new_object("obj-bus-receive", "s3g.bus.receive s3g-multichannel-1",
-                   470.0, 230.0, 225.0, 2, 1),
-        new_object("obj-input-bus-symbol", "sprintf s3g-multichannel-%ld",
-                   470.0, 250.0, 180.0, 1, 1),
-        new_object("obj-input-bus-init", "loadbang", 680.0, 215.0,
-                   65.0, 1, 1, ["bang"]),
-        new_object("obj-input-bus-init-defer", "deferlow", 680.0, 250.0,
-                   58.0, 1, 1),
-        box("obj-input-bus-output", "message", [680.0, 285.0, 78.0, 22.0],
-            text="outputvalue"),
+        new_object("obj-bus-insert", "s3g.bus.insert", 650.0, 230.0,
+                   100.0, 1, 0),
         hardware_output_popup(),
         new_object("obj-quad-output-init", "loadbang", 800.0, 215.0,
                    65.0, 1, 1, ["bang"]),
@@ -4604,25 +4522,16 @@ def output_autogain_quad_main_device() -> dict[str, object]:
     parameter_boxes, parameter_lines = fixed_parameter_runtime(
         OUTPUT_AUTOGAIN_PARAMETERS, (),
     )
-    replay_boxes, replay_lines = bus_menu_replay_controls(
-        "obj-input-bus-number", "obj-input-bus-init-defer",
-        "obj-input-bus-output", 900.0, 335.0,
-    )
-    boxes.extend(runtime_boxes + parameter_boxes + replay_boxes)
+    boxes.extend(runtime_boxes + parameter_boxes)
     lines = [
         line("obj-device", 0, "obj-device-split", 0),
-        line("obj-device-split", 0, "obj-bus-receive", 0),
-        line("obj-device-split", 1, "obj-once", 0),
+        line("obj-device-split", 1, "obj-bus-insert", 0),
+        line("obj-device-split", 0, "obj-once", 0),
         line("obj-once", 0, "obj-output-init", 0),
         line("obj-device", 0, "obj-hardware-routing", 0),
         line("obj-hardware-button", 0, "obj-hardware-open", 0),
         line("obj-hardware-open", 0, "obj-hardware-pcontrol", 0),
         line("obj-hardware-pcontrol", 0, "obj-hardware-routing", 0),
-        line("obj-input-bus-number", 0, "obj-input-bus-symbol", 0),
-        line("obj-input-bus-symbol", 0, "obj-bus-receive", 1),
-        line("obj-input-bus-init", 0, "obj-input-bus-init-defer", 0),
-        line("obj-input-bus-init-defer", 0, "obj-input-bus-output", 0),
-        line("obj-input-bus-output", 0, "obj-input-bus-number", 0),
         line("obj-quad-output-init", 0, "obj-quad-output-init-defer", 0),
         line("obj-device", 0, "obj-quad-output-init-defer", 0),
         line("obj-quad-output-init-defer", 0,
@@ -4630,9 +4539,9 @@ def output_autogain_quad_main_device() -> dict[str, object]:
     ]
     lines.extend(line("obj-plugin", channel + 2,
                       "obj-autogain-input-gain", channel)
-                 for channel in range(MULTICHANNEL_SLOT_COUNT))
+                 for channel in range(FIFTH_ORDER_SLOT_COUNT))
     lines.extend(line("obj-autogain-input-gain", channel, "obj-clap", channel)
-                 for channel in range(MULTICHANNEL_SLOT_COUNT))
+                 for channel in range(FIFTH_ORDER_SLOT_COUNT))
     for channel in range(1, 5):
         control = f"obj-quad-output-{channel}"
         gate = f"obj-quad-output-gate-{channel}"
@@ -4644,18 +4553,15 @@ def output_autogain_quad_main_device() -> dict[str, object]:
         lines.extend(routing_menu_lines(control))
         lines.extend(line(gate, slot, "obj-plugout", slot + 2)
                      for slot in range(MULTICHANNEL_SLOT_COUNT))
-    lines.extend(runtime_lines + parameter_lines + replay_lines)
-    lines.extend(routing_menu_lines("obj-input-bus-number", guarded_write=True))
+    lines.extend(runtime_lines + parameter_lines)
     document = patcher(
         name,
-        "Receives 32 generic bus channels, folds through fixed Output Autogain "
+        "Reads 36 channels from a preceding s3g Bus Receive 36 and folds "
+        "through fixed Output Autogain "
         "Quad 4, and independently assigns L/R/RB/LB to 32 mono hardware "
-        "slots. Only CLAP source channels 1–32 have Live bus feeds.",
+        "slots. Only CLAP source channels 1–36 have Live bus feeds.",
         boxes, lines, False, MAIN_OUT_DEVICE_HEIGHT,
     )
-    document["patcher"]["parameters"]["obj-input-bus-number"] = [
-        "Multichannel Input Bus", "Input Bus", 0,
-    ]
     document["patcher"]["parameters"]["obj-autogain-input-gain"] = [
         "Output AutoGain Input Gain", "Input Gain", 0,
     ]
@@ -5219,7 +5125,6 @@ def main() -> None:
             title="s3g Bus Receive 36",
         ),
     )
-    write_device("s3g 3OA Source", source_device())
     write_device("s3g 3OA Encoder Path", path_encoder_device())
     for name, plugin_name, plugin_id, parameters, order_id in (
         ("s3g 3OA Encoder Point", "s3g Ambi Encoder Point 64",
@@ -5267,13 +5172,11 @@ def main() -> None:
             name, plugin_name, plugin_id, parameters, order_id,
             midi_input, topology,
         ))
-    write_device("s3g 3OA Insert", insert_device())
     for kind, plugin_name, plugin_id, order_id, parameters in EFFECT_SPECS:
         name = f"s3g 3OA Effect {kind}"
         write_device(name, fixed_effect_insert_device(
             name, plugin_name, plugin_id, order_id, parameters,
         ))
-    write_device("s3g 3OA Decoder Main", master_device())
     write_device("s3g 3OA Decoder Speaker Main", speaker_main_out_device())
     for kind, plugin_name, plugin_id, parameters in (
         ("Head", "s3g Ambi Decoder Head 2",

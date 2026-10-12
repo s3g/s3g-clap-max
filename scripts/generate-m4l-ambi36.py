@@ -25,6 +25,11 @@ spec.loader.exec_module(generator)
 
 BUS_CHANNELS = 36
 LIVE_CHANNELS = BUS_CHANNELS + 2
+RETIRED_GENERIC_DEVICES = {
+    "s3g 3OA Source",
+    "s3g 3OA Insert",
+    "s3g 3OA Decoder Main",
+}
 
 
 def channels_object(object_id: str, kind: str, count: int) -> dict[str, object]:
@@ -271,8 +276,12 @@ def main() -> None:
         ),
     )
     sources = sorted((ROOT / "source/m4l").glob("s3g 3OA *.maxpat"))
-    if len(sources) < 40:
-        raise RuntimeError(f"expected complete 3OA wrapper family, found {len(sources)}")
+    retired = [path.stem for path in sources
+               if path.stem in RETIRED_GENERIC_DEVICES]
+    if retired:
+        raise RuntimeError(f"retired general-purpose sources remain: {retired}")
+    if len(sources) != 38:
+        raise RuntimeError(f"expected 38 fixed 3OA wrapper sources, found {len(sources)}")
     for path in sources:
         name, document = convert(path.stem, json.loads(path.read_text(encoding="utf-8")))
         generator.write_device(name, document)

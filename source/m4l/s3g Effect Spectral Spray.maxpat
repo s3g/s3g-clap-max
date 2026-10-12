@@ -9,19 +9,19 @@
       "modernui": 1
     },
     "rect": [
-      120.0,
-      90.0,
-      760.0,
-      720.0
+      120,
+      90,
+      2500,
+      1100
     ],
     "openrect": [
       0.0,
       0.0,
-      268.0,
+      240,
       169.0
     ],
     "openinpresentation": 1,
-    "devicewidth": 268.0,
+    "devicewidth": 240,
     "default_fontsize": 12.0,
     "default_fontface": 0,
     "default_fontname": "Arial",
@@ -50,9 +50,9 @@
     "toptoolbarpinned": 0,
     "righttoolbarpinned": 0,
     "bottomtoolbarpinned": 0,
-    "description": "Hosts an s3g CLAP processor in the 16-channel ACN/SN3D portion of the private s3g device chain.",
-    "digest": "Hosts an s3g CLAP processor in the 16-channel ACN/SN3D portion of the private s3g device chain.",
-    "tags": "s3g CLAP Ambisonics 3OA",
+    "description": "Fixed s3g Effect Spectral Spray 2 wrapper. Stereo insert on Live's normal stereo track.",
+    "digest": "Fixed s3g Effect Spectral Spray 2 wrapper. Stereo insert on Live's normal stereo track.",
+    "tags": "s3g CLAP fixed Effect",
     "latency": 0,
     "minimum_live_version": "12.0",
     "minimum_max_version": "8.5",
@@ -62,16 +62,16 @@
           "id": "obj-ui-background",
           "maxclass": "panel",
           "patching_rect": [
-            0.0,
-            0.0,
-            268.0,
+            2100,
+            40,
+            240,
             169.0
           ],
           "presentation": 1,
           "presentation_rect": [
-            0.0,
-            0.0,
-            268.0,
+            2100,
+            40,
+            240,
             169.0
           ],
           "numinlets": 1,
@@ -100,8 +100,8 @@
           "id": "obj-gui-button",
           "maxclass": "live.text",
           "patching_rect": [
-            95.0,
-            80.0,
+            700,
+            80,
             65.0,
             24.0
           ],
@@ -196,8 +196,8 @@
           "id": "obj-editor",
           "maxclass": "message",
           "patching_rect": [
-            95.0,
-            118.0,
+            900,
+            80,
             54.0,
             22.0
           ],
@@ -211,262 +211,18 @@
       },
       {
         "box": {
-          "id": "obj-load-button",
-          "maxclass": "live.text",
-          "patching_rect": [
-            20.0,
-            80.0,
-            65.0,
-            24.0
-          ],
-          "text": "LOAD CLAP",
-          "presentation": 1,
-          "presentation_rect": [
-            84.0,
-            10.0,
-            84.0,
-            20.0
-          ],
-          "texton": "LOAD CLAP",
-          "active": 1,
-          "mode": 0,
-          "appearance": 0,
-          "numinlets": 1,
-          "numoutlets": 2,
-          "outlettype": [
-            "",
-            ""
-          ],
-          "parameter_enable": 0,
-          "fontname": "Arial",
-          "fontsize": 11.0,
-          "activebgcolor": [
-            0.2,
-            0.2,
-            0.2,
-            1.0
-          ],
-          "activebgoncolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "activetextcolor": [
-            0.74,
-            0.74,
-            0.74,
-            1.0
-          ],
-          "activetextoncolor": [
-            0.05098,
-            0.05098,
-            0.05098,
-            1.0
-          ],
-          "bgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "bgoncolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "textcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ],
-          "textoffcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ],
-          "bordercolor": [
-            0.28,
-            0.28,
-            0.28,
-            1.0
-          ],
-          "focusbordercolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "rounded": 2.0,
-          "annotation": "Choose the CLAP plugin for this generic wrapper.",
-          "annotation_name": "LOAD CLAP"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-open",
-          "maxclass": "message",
-          "patching_rect": [
-            20.0,
-            118.0,
-            42.0,
-            22.0
-          ],
-          "text": "open",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-chain",
-          "maxclass": "live.text",
-          "patching_rect": [
-            470.0,
-            95.0,
-            62.0,
-            22.0
-          ],
-          "text": "MAIN",
-          "presentation": 1,
-          "presentation_rect": [
-            180.0,
-            10.0,
-            76.0,
-            20.0
-          ],
-          "texton": "NEXT ON",
-          "automation": "Off",
-          "automationon": "On",
-          "numinlets": 1,
-          "numoutlets": 2,
-          "outlettype": [
-            "",
-            ""
-          ],
-          "parameter_enable": 1,
-          "annotation": "Route the 3OA stream to the next s3g device on this track instead of the named main bus.",
-          "annotation_name": "Route to next s3g device",
-          "mode": 1,
-          "activebgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "activebgoncolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "activetextcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ],
-          "activetextoncolor": [
-            0.05098,
-            0.05098,
-            0.05098,
-            1.0
-          ],
-          "bgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "bgoncolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "textcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ],
-          "textoffcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ],
-          "bordercolor": [
-            0.28,
-            0.28,
-            0.28,
-            1.0
-          ],
-          "focusbordercolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "fontname": "Arial",
-          "fontsize": 11.0,
-          "rounded": 2.0,
-          "saved_attribute_attributes": {
-            "valueof": {
-              "parameter_longname": "Route to Chain",
-              "parameter_shortname": "Chain",
-              "parameter_initial_enable": 1,
-              "parameter_initial": [
-                0
-              ],
-              "parameter_enum": [
-                "Off",
-                "On"
-              ],
-              "parameter_mmax": 1,
-              "parameter_modmode": 0,
-              "parameter_type": 2
-            }
-          },
-          "varname": "route_to_chain"
-        }
-      },
-      {
-        "box": {
           "id": "obj-plugin",
           "maxclass": "newobj",
           "patching_rect": [
-            40.0,
-            180.0,
-            320.0,
+            40,
+            100,
+            110,
             22.0
           ],
-          "text": "plugin~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
-          "numinlets": 18,
-          "numoutlets": 18,
+          "text": "plugin~ 1 2",
+          "numinlets": 2,
+          "numoutlets": 2,
           "outlettype": [
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
             "signal",
             "signal"
           ]
@@ -477,29 +233,15 @@
           "id": "obj-clap",
           "maxclass": "newobj",
           "patching_rect": [
-            125.0,
-            300.0,
+            40,
+            240,
             310.0,
             22.0
           ],
-          "text": "s3g.clap~ 16 16",
-          "numinlets": 16,
-          "numoutlets": 17,
+          "text": "s3g.clap~ 2 2",
+          "numinlets": 2,
+          "numoutlets": 3,
           "outlettype": [
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
             "signal",
             "signal",
             "list"
@@ -512,31 +254,15 @@
           "id": "obj-plugout",
           "maxclass": "newobj",
           "patching_rect": [
-            40.0,
-            365.0,
-            320.0,
+            40,
+            380,
+            110,
             22.0
           ],
-          "text": "plugout~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
-          "numinlets": 18,
-          "numoutlets": 18,
+          "text": "plugout~ 1 2",
+          "numinlets": 2,
+          "numoutlets": 2,
           "outlettype": [
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
-            "signal",
             "signal",
             "signal"
           ]
@@ -547,9 +273,9 @@
           "id": "obj-device",
           "maxclass": "newobj",
           "patching_rect": [
-            470.0,
-            180.0,
-            125.0,
+            1550,
+            100,
+            125,
             22.0
           ],
           "text": "s3g.live.thisdevice",
@@ -562,43 +288,11 @@
       },
       {
         "box": {
-          "id": "obj-bus-insert",
-          "maxclass": "newobj",
-          "patching_rect": [
-            470.0,
-            230.0,
-            95.0,
-            22.0
-          ],
-          "text": "s3g.bus.insert",
-          "numinlets": 1,
-          "numoutlets": 0,
-          "outlettype": []
-        }
-      },
-      {
-        "box": {
-          "id": "obj-bus-send",
-          "maxclass": "newobj",
-          "patching_rect": [
-            470.0,
-            270.0,
-            125.0,
-            22.0
-          ],
-          "text": "s3g.bus.send master",
-          "numinlets": 3,
-          "numoutlets": 0,
-          "outlettype": []
-        }
-      },
-      {
-        "box": {
           "id": "obj-plugsync",
           "maxclass": "newobj",
           "patching_rect": [
-            40.0,
-            520.0,
+            40,
+            740,
             70.0,
             22.0
           ],
@@ -623,8 +317,8 @@
           "id": "obj-timesig",
           "maxclass": "newobj",
           "patching_rect": [
-            250.0,
-            555.0,
+            200,
+            740,
             75.0,
             22.0
           ],
@@ -642,8 +336,8 @@
           "id": "obj-transport-pack",
           "maxclass": "newobj",
           "patching_rect": [
-            40.0,
-            600.0,
+            40,
+            810,
             180.0,
             22.0
           ],
@@ -660,8 +354,8 @@
           "id": "obj-transport",
           "maxclass": "newobj",
           "patching_rect": [
-            40.0,
-            635.0,
+            40,
+            880,
             145.0,
             22.0
           ],
@@ -678,15 +372,16 @@
           "id": "obj-route-status",
           "maxclass": "newobj",
           "patching_rect": [
-            390.0,
-            400.0,
-            120.0,
+            40,
+            500,
+            280.0,
             22.0
           ],
-          "text": "route latency error loaded paramchanged state statechanged",
+          "text": "route latency error loaded paramchanged paraminfo state statechanged",
           "numinlets": 1,
-          "numoutlets": 7,
+          "numoutlets": 8,
           "outlettype": [
+            "",
             "",
             "",
             "",
@@ -702,8 +397,8 @@
           "id": "obj-latency-message",
           "maxclass": "newobj",
           "patching_rect": [
-            390.0,
-            435.0,
+            40,
+            560,
             100.0,
             22.0
           ],
@@ -720,8 +415,8 @@
           "id": "obj-thispatcher",
           "maxclass": "newobj",
           "patching_rect": [
-            390.0,
-            470.0,
+            40,
+            620,
             72.0,
             22.0
           ],
@@ -739,8 +434,8 @@
           "id": "obj-print",
           "maxclass": "newobj",
           "patching_rect": [
-            525.0,
-            435.0,
+            200,
+            560,
             115.0,
             22.0
           ],
@@ -755,8 +450,8 @@
           "id": "obj-loadbang",
           "maxclass": "newobj",
           "patching_rect": [
-            525.0,
-            520.0,
+            700,
+            180,
             65.0,
             22.0
           ],
@@ -773,8 +468,8 @@
           "id": "obj-delayed-load",
           "maxclass": "newobj",
           "patching_rect": [
-            525.0,
-            555.0,
+            700,
+            240,
             65.0,
             22.0
           ],
@@ -791,12 +486,12 @@
           "id": "obj-default-open",
           "maxclass": "message",
           "patching_rect": [
-            525.0,
-            590.0,
+            700,
+            300,
             220.0,
             22.0
           ],
-          "text": "openifempty \"s3g Ambi Effect Gain 64\"",
+          "text": "openifempty \"s3g Effect Spectral Spray 2\" org.s3g.s3g-dsp.spectral-spray",
           "numinlets": 2,
           "numoutlets": 1,
           "outlettype": [
@@ -806,29 +501,11 @@
       },
       {
         "box": {
-          "id": "obj-load-trigger",
-          "maxclass": "newobj",
-          "patching_rect": [
-            20.0,
-            118.0,
-            30.0,
-            22.0
-          ],
-          "text": "t b",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            "bang"
-          ]
-        }
-      },
-      {
-        "box": {
           "id": "obj-editor-trigger",
           "maxclass": "newobj",
           "patching_rect": [
-            95.0,
-            118.0,
+            800,
+            80,
             30.0,
             22.0
           ],
@@ -845,8 +522,8 @@
           "id": "obj-clap-state",
           "maxclass": "newobj",
           "patching_rect": [
-            525.0,
-            670.0,
+            700,
+            400,
             260.0,
             22.0
           ],
@@ -878,8 +555,8 @@
           "id": "obj-state-valid",
           "maxclass": "newobj",
           "patching_rect": [
-            525.0,
-            690.0,
+            700,
+            460,
             170.0,
             22.0
           ],
@@ -897,8 +574,8 @@
           "id": "obj-state-restore",
           "maxclass": "newobj",
           "patching_rect": [
-            525.0,
-            705.0,
+            700,
+            520,
             105.0,
             22.0
           ],
@@ -915,8 +592,8 @@
           "id": "obj-state-restore-init",
           "maxclass": "newobj",
           "patching_rect": [
-            525.0,
-            740.0,
+            700,
+            600,
             55.0,
             22.0
           ],
@@ -935,8 +612,8 @@
           "id": "obj-state-capture-enable",
           "maxclass": "message",
           "patching_rect": [
-            590.0,
-            740.0,
+            900,
+            660,
             30.0,
             22.0
           ],
@@ -953,8 +630,8 @@
           "id": "obj-state-capture-gate",
           "maxclass": "newobj",
           "patching_rect": [
-            650.0,
-            775.0,
+            1000,
+            660,
             65.0,
             22.0
           ],
@@ -971,8 +648,8 @@
           "id": "obj-state-capture-delay",
           "maxclass": "newobj",
           "patching_rect": [
-            650.0,
-            705.0,
+            1000,
+            520,
             65.0,
             22.0
           ],
@@ -989,8 +666,8 @@
           "id": "obj-state-get",
           "maxclass": "message",
           "patching_rect": [
-            730.0,
-            705.0,
+            1000,
+            580,
             58.0,
             22.0
           ],
@@ -1007,8 +684,8 @@
           "id": "obj-state-change-bang",
           "maxclass": "newobj",
           "patching_rect": [
-            650.0,
-            740.0,
+            800,
+            660,
             30.0,
             22.0
           ],
@@ -1017,6 +694,407 @@
           "numoutlets": 1,
           "outlettype": [
             "bang"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-gate",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1150,
+            220,
+            65.0,
+            22.0
+          ],
+          "text": "gate 1 0",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-enable",
+          "maxclass": "message",
+          "patching_rect": [
+            1250,
+            100,
+            30.0,
+            22.0
+          ],
+          "text": "1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-loaded-trigger",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1150,
+            100,
+            55.0,
+            22.0
+          ],
+          "text": "t b b b",
+          "numinlets": 1,
+          "numoutlets": 3,
+          "outlettype": [
+            "bang",
+            "bang",
+            "bang"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-resync-delay",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1150,
+            160,
+            62.0,
+            22.0
+          ],
+          "text": "delay 50",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            "bang"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-paramchanged-route",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1150,
+            300,
+            290.0,
+            22.0
+          ],
+          "text": "route 1 4 5 12",
+          "numinlets": 1,
+          "numoutlets": 5,
+          "outlettype": [
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-1",
+          "maxclass": "live.numbox",
+          "patching_rect": [
+            1150,
+            430,
+            90.0,
+            22.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            "float"
+          ],
+          "parameter_enable": 1,
+          "saved_attribute_attributes": {
+            "valueof": {
+              "parameter_annotation_name": "Spray Bins",
+              "parameter_longname": "Spray Bins",
+              "parameter_shortname": "Bins",
+              "parameter_initial_enable": 1,
+              "parameter_initial": [
+                18
+              ],
+              "parameter_invisible": 0,
+              "parameter_mmin": 0,
+              "parameter_mmax": 256,
+              "parameter_modmode": 0,
+              "parameter_order": 1,
+              "parameter_linknames": 0,
+              "parameter_speedlim": 3.0,
+              "parameter_unitstyle": 0,
+              "parameter_type": 0
+            }
+          },
+          "varname": "clap_param_1"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-message-1",
+          "maxclass": "message",
+          "patching_rect": [
+            1260,
+            430,
+            105.0,
+            22.0
+          ],
+          "text": "automateparamid 1 $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-reflect-1",
+          "maxclass": "message",
+          "patching_rect": [
+            1400,
+            430,
+            65.0,
+            22.0
+          ],
+          "text": "set $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-4",
+          "maxclass": "live.numbox",
+          "patching_rect": [
+            1150,
+            520,
+            90.0,
+            22.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            "float"
+          ],
+          "parameter_enable": 1,
+          "saved_attribute_attributes": {
+            "valueof": {
+              "parameter_annotation_name": "Freeze",
+              "parameter_longname": "Freeze",
+              "parameter_shortname": "Freeze",
+              "parameter_initial_enable": 1,
+              "parameter_initial": [
+                0
+              ],
+              "parameter_invisible": 0,
+              "parameter_mmin": 0,
+              "parameter_mmax": 1,
+              "parameter_modmode": 0,
+              "parameter_order": 2,
+              "parameter_linknames": 0,
+              "parameter_speedlim": 3.0,
+              "parameter_unitstyle": 0,
+              "parameter_type": 1,
+              "parameter_steps": 2
+            }
+          },
+          "varname": "clap_param_4"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-message-4",
+          "maxclass": "message",
+          "patching_rect": [
+            1260,
+            520,
+            105.0,
+            22.0
+          ],
+          "text": "automateparamid 4 $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-reflect-4",
+          "maxclass": "message",
+          "patching_rect": [
+            1400,
+            520,
+            65.0,
+            22.0
+          ],
+          "text": "set $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-5",
+          "maxclass": "live.numbox",
+          "patching_rect": [
+            1150,
+            610,
+            90.0,
+            22.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            "float"
+          ],
+          "parameter_enable": 1,
+          "saved_attribute_attributes": {
+            "valueof": {
+              "parameter_annotation_name": "Feedback",
+              "parameter_longname": "Feedback",
+              "parameter_shortname": "Feedback",
+              "parameter_initial_enable": 1,
+              "parameter_initial": [
+                0.18
+              ],
+              "parameter_invisible": 0,
+              "parameter_mmin": 0,
+              "parameter_mmax": 0.85,
+              "parameter_modmode": 0,
+              "parameter_order": 3,
+              "parameter_linknames": 0,
+              "parameter_speedlim": 3.0,
+              "parameter_unitstyle": 0,
+              "parameter_type": 0
+            }
+          },
+          "varname": "clap_param_5"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-message-5",
+          "maxclass": "message",
+          "patching_rect": [
+            1260,
+            610,
+            105.0,
+            22.0
+          ],
+          "text": "automateparamid 5 $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-reflect-5",
+          "maxclass": "message",
+          "patching_rect": [
+            1400,
+            610,
+            65.0,
+            22.0
+          ],
+          "text": "set $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-12",
+          "maxclass": "live.numbox",
+          "patching_rect": [
+            1150,
+            700,
+            90.0,
+            22.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            "float"
+          ],
+          "parameter_enable": 1,
+          "saved_attribute_attributes": {
+            "valueof": {
+              "parameter_annotation_name": "Mix",
+              "parameter_longname": "Mix",
+              "parameter_shortname": "Mix",
+              "parameter_initial_enable": 1,
+              "parameter_initial": [
+                1
+              ],
+              "parameter_invisible": 0,
+              "parameter_mmin": 0,
+              "parameter_mmax": 1,
+              "parameter_modmode": 0,
+              "parameter_order": 4,
+              "parameter_linknames": 0,
+              "parameter_speedlim": 3.0,
+              "parameter_unitstyle": 0,
+              "parameter_type": 0
+            }
+          },
+          "varname": "clap_param_12"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-message-12",
+          "maxclass": "message",
+          "patching_rect": [
+            1260,
+            700,
+            105.0,
+            22.0
+          ],
+          "text": "automateparamid 12 $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-param-reflect-12",
+          "maxclass": "message",
+          "patching_rect": [
+            1400,
+            700,
+            65.0,
+            22.0
+          ],
+          "text": "set $1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
           ]
         }
       }
@@ -1029,7 +1107,7 @@
             0
           ],
           "destination": [
-            "obj-plugout",
+            "obj-clap",
             0
           ]
         }
@@ -1041,236 +1119,8 @@
             1
           ],
           "destination": [
-            "obj-plugout",
-            1
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-device",
-            0
-          ],
-          "destination": [
-            "obj-bus-insert",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-device",
-            0
-          ],
-          "destination": [
-            "obj-bus-send",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-chain",
-            0
-          ],
-          "destination": [
-            "obj-bus-send",
-            1
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            2
-          ],
-          "destination": [
-            "obj-clap",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            3
-          ],
-          "destination": [
             "obj-clap",
             1
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            4
-          ],
-          "destination": [
-            "obj-clap",
-            2
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            5
-          ],
-          "destination": [
-            "obj-clap",
-            3
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            6
-          ],
-          "destination": [
-            "obj-clap",
-            4
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            7
-          ],
-          "destination": [
-            "obj-clap",
-            5
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            8
-          ],
-          "destination": [
-            "obj-clap",
-            6
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            9
-          ],
-          "destination": [
-            "obj-clap",
-            7
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            10
-          ],
-          "destination": [
-            "obj-clap",
-            8
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            11
-          ],
-          "destination": [
-            "obj-clap",
-            9
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            12
-          ],
-          "destination": [
-            "obj-clap",
-            10
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            13
-          ],
-          "destination": [
-            "obj-clap",
-            11
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            14
-          ],
-          "destination": [
-            "obj-clap",
-            12
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            15
-          ],
-          "destination": [
-            "obj-clap",
-            13
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            16
-          ],
-          "destination": [
-            "obj-clap",
-            14
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-plugin",
-            17
-          ],
-          "destination": [
-            "obj-clap",
-            15
           ]
         }
       },
@@ -1282,7 +1132,7 @@
           ],
           "destination": [
             "obj-plugout",
-            2
+            0
           ]
         }
       },
@@ -1294,175 +1144,7 @@
           ],
           "destination": [
             "obj-plugout",
-            3
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            2
-          ],
-          "destination": [
-            "obj-plugout",
-            4
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            3
-          ],
-          "destination": [
-            "obj-plugout",
-            5
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            4
-          ],
-          "destination": [
-            "obj-plugout",
-            6
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            5
-          ],
-          "destination": [
-            "obj-plugout",
-            7
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            6
-          ],
-          "destination": [
-            "obj-plugout",
-            8
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            7
-          ],
-          "destination": [
-            "obj-plugout",
-            9
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            8
-          ],
-          "destination": [
-            "obj-plugout",
-            10
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            9
-          ],
-          "destination": [
-            "obj-plugout",
-            11
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            10
-          ],
-          "destination": [
-            "obj-plugout",
-            12
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            11
-          ],
-          "destination": [
-            "obj-plugout",
-            13
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            12
-          ],
-          "destination": [
-            "obj-plugout",
-            14
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            13
-          ],
-          "destination": [
-            "obj-plugout",
-            15
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            14
-          ],
-          "destination": [
-            "obj-plugout",
-            16
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-clap",
-            15
-          ],
-          "destination": [
-            "obj-plugout",
-            17
+            1
           ]
         }
       },
@@ -1590,7 +1272,7 @@
         "patchline": {
           "source": [
             "obj-clap",
-            16
+            2
           ],
           "destination": [
             "obj-route-status",
@@ -1770,7 +1452,7 @@
         "patchline": {
           "source": [
             "obj-route-status",
-            4
+            5
           ],
           "destination": [
             "obj-clap-state",
@@ -1806,7 +1488,7 @@
         "patchline": {
           "source": [
             "obj-route-status",
-            5
+            6
           ],
           "destination": [
             "obj-state-change-bang",
@@ -1865,42 +1547,6 @@
       {
         "patchline": {
           "source": [
-            "obj-load-button",
-            0
-          ],
-          "destination": [
-            "obj-load-trigger",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-load-trigger",
-            0
-          ],
-          "destination": [
-            "obj-open",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-open",
-            0
-          ],
-          "destination": [
-            "obj-clap",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
             "obj-gui-button",
             0
           ],
@@ -1933,6 +1579,318 @@
             0
           ]
         }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-route-status",
+            2
+          ],
+          "destination": [
+            "obj-param-loaded-trigger",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-loaded-trigger",
+            1
+          ],
+          "destination": [
+            "obj-param-enable",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-enable",
+            0
+          ],
+          "destination": [
+            "obj-param-gate",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-loaded-trigger",
+            0
+          ],
+          "destination": [
+            "obj-param-resync-delay",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-gate",
+            0
+          ],
+          "destination": [
+            "obj-clap",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-route-status",
+            3
+          ],
+          "destination": [
+            "obj-paramchanged-route",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-1",
+            0
+          ],
+          "destination": [
+            "obj-param-message-1",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-message-1",
+            0
+          ],
+          "destination": [
+            "obj-param-gate",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-resync-delay",
+            0
+          ],
+          "destination": [
+            "obj-param-1",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-paramchanged-route",
+            0
+          ],
+          "destination": [
+            "obj-param-reflect-1",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-reflect-1",
+            0
+          ],
+          "destination": [
+            "obj-param-1",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-4",
+            0
+          ],
+          "destination": [
+            "obj-param-message-4",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-message-4",
+            0
+          ],
+          "destination": [
+            "obj-param-gate",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-resync-delay",
+            0
+          ],
+          "destination": [
+            "obj-param-4",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-paramchanged-route",
+            1
+          ],
+          "destination": [
+            "obj-param-reflect-4",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-reflect-4",
+            0
+          ],
+          "destination": [
+            "obj-param-4",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-5",
+            0
+          ],
+          "destination": [
+            "obj-param-message-5",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-message-5",
+            0
+          ],
+          "destination": [
+            "obj-param-gate",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-resync-delay",
+            0
+          ],
+          "destination": [
+            "obj-param-5",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-paramchanged-route",
+            2
+          ],
+          "destination": [
+            "obj-param-reflect-5",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-reflect-5",
+            0
+          ],
+          "destination": [
+            "obj-param-5",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-12",
+            0
+          ],
+          "destination": [
+            "obj-param-message-12",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-message-12",
+            0
+          ],
+          "destination": [
+            "obj-param-gate",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-resync-delay",
+            0
+          ],
+          "destination": [
+            "obj-param-12",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-paramchanged-route",
+            3
+          ],
+          "destination": [
+            "obj-param-reflect-12",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-param-reflect-12",
+            0
+          ],
+          "destination": [
+            "obj-param-12",
+            0
+          ]
+        }
       }
     ],
     "parameters": {
@@ -1943,10 +1901,25 @@
       ],
       "parameterbanks": {},
       "inherited_shortname": 1,
-      "obj-chain": [
-        "Route to Chain",
-        "Chain",
-        0
+      "obj-param-1": [
+        "Spray Bins",
+        "Bins",
+        1
+      ],
+      "obj-param-4": [
+        "Freeze",
+        "Freeze",
+        2
+      ],
+      "obj-param-5": [
+        "Feedback",
+        "Feedback",
+        3
+      ],
+      "obj-param-12": [
+        "Mix",
+        "Mix",
+        4
       ]
     },
     "dependency_cache": [

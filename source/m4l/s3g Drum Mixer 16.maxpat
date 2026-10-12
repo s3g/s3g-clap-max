@@ -50,8 +50,8 @@
     "toptoolbarpinned": 0,
     "righttoolbarpinned": 0,
     "bottomtoolbarpinned": 0,
-    "description": "Receives a private 16-channel Drum bus as eight stereo lanes. Sum output reaches Live stereo; direct-mode lanes also reach the 16 auxiliary device-chain channels.",
-    "digest": "Receives a private 16-channel Drum bus as eight stereo lanes. Sum output reaches Live stereo; direct-mode lanes also reach the 16 auxiliary device-chain channels.",
+    "description": "Reads the first 16 slots from the preceding s3g Bus Receive 36 as eight stereo Drum lanes. Sum reaches Live stereo; direct-mode lanes can feed the next device or s3g Bus Send 36.",
+    "digest": "Reads the first 16 slots from the preceding s3g Bus Receive 36 as eight stereo Drum lanes. Sum reaches Live stereo; direct-mode lanes can feed the next device or s3g Bus Send 36.",
     "tags": "s3g CLAP Ambisonics 3OA",
     "latency": 0,
     "minimum_live_version": "12.0",
@@ -211,272 +211,38 @@
       },
       {
         "box": {
-          "id": "obj-input-bus-label",
-          "maxclass": "comment",
-          "patching_rect": [
-            84.0,
-            10.0,
-            52.0,
-            20.0
-          ],
-          "text": "RCV BUS",
-          "presentation": 1,
-          "presentation_rect": [
-            84.0,
-            10.0,
-            52.0,
-            20.0
-          ],
-          "numinlets": 1,
-          "numoutlets": 0,
-          "outlettype": [],
-          "fontname": "Arial",
-          "fontsize": 11.0,
-          "textcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number",
-          "maxclass": "live.numbox",
-          "patching_rect": [
-            470.0,
-            95.0,
-            56.0,
-            22.0
-          ],
-          "hidden": 1,
-          "numinlets": 1,
-          "numoutlets": 2,
-          "outlettype": [
-            "",
-            "float"
-          ],
-          "parameter_enable": 1,
-          "activebgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "activetextcolor": [
-            0.72,
-            0.72,
-            0.72,
-            1.0
-          ],
-          "bgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "bordercolor": [
-            0.28,
-            0.28,
-            0.28,
-            1.0
-          ],
-          "focusbordercolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "textcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ],
-          "triangle": 1,
-          "tricolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "fontname": "Arial",
-          "fontsize": 9.0,
-          "saved_attribute_attributes": {
-            "valueof": {
-              "parameter_longname": "Drum Input Bus",
-              "parameter_shortname": "Input Bus",
-              "parameter_initial_enable": 1,
-              "parameter_initial": [
-                1
-              ],
-              "parameter_invisible": 0,
-              "parameter_mmin": 1,
-              "parameter_mmax": 16,
-              "parameter_steps": 16,
-              "parameter_modmode": 0,
-              "parameter_type": 1,
-              "parameter_unitstyle": 0
-            }
-          },
-          "varname": "input_bus_number"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu",
-          "maxclass": "umenu",
-          "patching_rect": [
-            142.0,
-            10.0,
-            56.0,
-            20.0
-          ],
-          "presentation": 1,
-          "presentation_rect": [
-            142.0,
-            10.0,
-            56.0,
-            20.0
-          ],
-          "numinlets": 1,
-          "numoutlets": 3,
-          "outlettype": [
-            "int",
-            "",
-            ""
-          ],
-          "parameter_enable": 0,
-          "items": [
-            "01",
-            ",",
-            "02",
-            ",",
-            "03",
-            ",",
-            "04",
-            ",",
-            "05",
-            ",",
-            "06",
-            ",",
-            "07",
-            ",",
-            "08",
-            ",",
-            "09",
-            ",",
-            "10",
-            ",",
-            "11",
-            ",",
-            "12",
-            ",",
-            "13",
-            ",",
-            "14",
-            ",",
-            "15",
-            ",",
-            "16"
-          ],
-          "menumode": 0,
-          "arrow": 1,
-          "allowdrag": 0,
-          "applycolors": 1,
-          "bgfillcolor": [
-            0.2,
-            0.2,
-            0.2,
-            1.0
-          ],
-          "textcolor": [
-            0.74,
-            0.74,
-            0.74,
-            1.0
-          ],
-          "elementcolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "fontname": "Arial",
-          "fontsize": 11.0,
-          "annotation": "Choose drum input bus from the menu.",
-          "annotation_name": "Drum Input Bus"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu-to-value",
-          "maxclass": "newobj",
-          "patching_rect": [
-            1050.0,
-            40.0,
-            38.0,
-            22.0
-          ],
-          "text": "+ 1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            "int"
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-value-to-menu",
-          "maxclass": "newobj",
-          "patching_rect": [
-            1100.0,
-            40.0,
-            38.0,
-            22.0
-          ],
-          "text": "- 1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            "int"
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu-set",
-          "maxclass": "newobj",
-          "patching_rect": [
-            1150.0,
-            40.0,
-            78.0,
-            22.0
-          ],
-          "text": "prepend set",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
           "id": "obj-plugin",
           "maxclass": "newobj",
           "patching_rect": [
             40.0,
             180.0,
-            370.0,
+            610.0,
             22.0
           ],
-          "text": "plugin~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
-          "numinlets": 18,
-          "numoutlets": 18,
+          "text": "plugin~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38",
+          "numinlets": 38,
+          "numoutlets": 38,
           "outlettype": [
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
             "signal",
             "signal",
             "signal",
@@ -540,13 +306,33 @@
           "patching_rect": [
             40.0,
             365.0,
-            370.0,
+            610.0,
             22.0
           ],
-          "text": "plugout~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
-          "numinlets": 18,
-          "numoutlets": 18,
+          "text": "plugout~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38",
+          "numinlets": 38,
+          "numoutlets": 38,
           "outlettype": [
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
+            "signal",
             "signal",
             "signal",
             "signal",
@@ -588,70 +374,70 @@
       },
       {
         "box": {
-          "id": "obj-bus-receive",
+          "id": "obj-route-start",
           "maxclass": "newobj",
           "patching_rect": [
             470.0,
             215.0,
-            215.0,
+            42.0,
             22.0
           ],
-          "text": "s3g.bus.receive s3g-drum16-1",
-          "numinlets": 2,
-          "numoutlets": 1,
+          "text": "t l l",
+          "numinlets": 1,
+          "numoutlets": 2,
           "outlettype": [
-            ""
+            "list",
+            "list"
           ]
         }
       },
       {
         "box": {
-          "id": "obj-input-bus-symbol",
+          "id": "obj-bus-insert",
           "maxclass": "newobj",
           "patching_rect": [
             470.0,
-            250.0,
-            180.0,
+            255.0,
+            100.0,
             22.0
           ],
-          "text": "sprintf s3g-drum16-%ld",
+          "text": "s3g.bus.insert",
           "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
+          "numoutlets": 0,
+          "outlettype": []
         }
       },
       {
         "box": {
-          "id": "obj-input-bus-init",
+          "id": "obj-next-trigger",
           "maxclass": "newobj",
           "patching_rect": [
-            680.0,
-            215.0,
-            65.0,
+            600.0,
+            255.0,
+            48.0,
             22.0
           ],
-          "text": "loadbang",
+          "text": "t l b",
           "numinlets": 1,
-          "numoutlets": 1,
+          "numoutlets": 2,
           "outlettype": [
+            "list",
             "bang"
           ]
         }
       },
       {
         "box": {
-          "id": "obj-input-bus-init-defer",
-          "maxclass": "newobj",
+          "id": "obj-next-mode",
+          "maxclass": "message",
           "patching_rect": [
-            680.0,
-            250.0,
-            58.0,
+            660.0,
+            255.0,
+            30.0,
             22.0
           ],
-          "text": "deferlow",
-          "numinlets": 1,
+          "text": "1",
+          "numinlets": 2,
           "numoutlets": 1,
           "outlettype": [
             ""
@@ -660,20 +446,18 @@
       },
       {
         "box": {
-          "id": "obj-input-bus-output",
-          "maxclass": "message",
+          "id": "obj-next-send",
+          "maxclass": "newobj",
           "patching_rect": [
-            680.0,
-            285.0,
-            78.0,
+            600.0,
+            300.0,
+            220.0,
             22.0
           ],
-          "text": "outputvalue",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
+          "text": "s3g.bus.send s3g-chain-next",
+          "numinlets": 3,
+          "numoutlets": 0,
+          "outlettype": []
         }
       },
       {
@@ -1494,117 +1278,6 @@
             ""
           ]
         }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu-write-gate",
-          "maxclass": "newobj",
-          "patching_rect": [
-            780.0,
-            425.0,
-            65.0,
-            22.0
-          ],
-          "text": "gate 1 1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-ready",
-          "maxclass": "newobj",
-          "patching_rect": [
-            780.0,
-            335.0,
-            34.0,
-            22.0
-          ],
-          "text": "t b",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-delay",
-          "maxclass": "newobj",
-          "patching_rect": [
-            828.0,
-            335.0,
-            75.0,
-            22.0
-          ],
-          "text": "delay 100",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-order",
-          "maxclass": "newobj",
-          "patching_rect": [
-            920.0,
-            335.0,
-            74.0,
-            22.0
-          ],
-          "text": "t b b b b",
-          "numinlets": 1,
-          "numoutlets": 4,
-          "outlettype": [
-            "",
-            "",
-            "",
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-close",
-          "maxclass": "message",
-          "patching_rect": [
-            1010.0,
-            335.0,
-            30.0,
-            22.0
-          ],
-          "text": "0",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-open",
-          "maxclass": "message",
-          "patching_rect": [
-            1050.0,
-            335.0,
-            30.0,
-            22.0
-          ],
-          "text": "1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
       }
     ],
     "lines": [
@@ -1615,7 +1288,7 @@
             0
           ],
           "destination": [
-            "obj-bus-receive",
+            "obj-route-start",
             0
           ]
         }
@@ -1623,11 +1296,11 @@
       {
         "patchline": {
           "source": [
-            "obj-input-bus-number",
-            0
+            "obj-route-start",
+            1
           ],
           "destination": [
-            "obj-input-bus-symbol",
+            "obj-bus-insert",
             0
           ]
         }
@@ -1635,11 +1308,35 @@
       {
         "patchline": {
           "source": [
-            "obj-input-bus-symbol",
+            "obj-route-start",
             0
           ],
           "destination": [
-            "obj-bus-receive",
+            "obj-next-trigger",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-next-trigger",
+            1
+          ],
+          "destination": [
+            "obj-next-mode",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-next-mode",
+            0
+          ],
+          "destination": [
+            "obj-next-send",
             1
           ]
         }
@@ -1647,35 +1344,11 @@
       {
         "patchline": {
           "source": [
-            "obj-input-bus-init",
+            "obj-next-trigger",
             0
           ],
           "destination": [
-            "obj-input-bus-init-defer",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-init-defer",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-output",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-output",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number",
+            "obj-next-send",
             0
           ]
         }
@@ -2085,198 +1758,6 @@
           "destination": [
             "obj-plugout",
             1
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-init-defer",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-delay",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-device",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-ready",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-ready",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-delay",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-delay",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-order",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            3
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-close",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-close",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-write-gate",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            2
-          ],
-          "destination": [
-            "obj-input-bus-output",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            1
-          ],
-          "destination": [
-            "obj-input-bus-number-menu",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-open",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-open",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-write-gate",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-to-value",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-value-to-menu",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-value-to-menu",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-set",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu-set",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu-to-value",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-write-gate",
-            1
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu-write-gate",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number",
-            0
           ]
         }
       },
@@ -3033,11 +2514,6 @@
       ],
       "parameterbanks": {},
       "inherited_shortname": 1,
-      "obj-input-bus-number": [
-        "Drum Input Bus",
-        "Input Bus",
-        0
-      ],
       "obj-param-1": [
         "Output Mode",
         "Mode",

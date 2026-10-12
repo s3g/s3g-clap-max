@@ -12,6 +12,11 @@ import struct
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "source/m4l"
 DEVICE = ROOT / "package/devices"
+RETIRED_GENERIC_DEVICES = (
+    "s3g Ambi Source",
+    "s3g Ambi Insert",
+    "s3g Ambi Decoder Main",
+)
 
 
 def line_set(patch: dict[str, object]) -> set[tuple[tuple[str, int], tuple[str, int]]]:
@@ -253,8 +258,15 @@ def validate(name: str) -> None:
 
 def main() -> None:
     originals = sorted(SOURCE.glob("s3g 3OA *.maxpat"))
-    if len(originals) != 41:
-        raise ValueError(f"expected 41 original Ambi wrappers, got {len(originals)}")
+    if len(originals) != 38:
+        raise ValueError(f"expected 38 fixed 3OA wrappers, got {len(originals)}")
+    if any(original.stem.replace("s3g 3OA", "s3g Ambi", 1)
+           in RETIRED_GENERIC_DEVICES for original in originals):
+        raise ValueError("retired general-purpose source remains")
+    for name in RETIRED_GENERIC_DEVICES:
+        for directory, suffix in ((SOURCE, ".maxpat"), (DEVICE, ".amxd")):
+            if (directory / f"{name}{suffix}").exists():
+                raise ValueError(f"retired generic device remains: {name}{suffix}")
     for original in originals:
         validate(original.stem.replace("s3g 3OA", "s3g Ambi", 1))
     send = json.loads((SOURCE / "s3g Bus Send 36.maxpat").read_text(encoding="utf-8"))
@@ -330,7 +342,7 @@ def main() -> None:
     }
     if not required_identity_flow.issubset(receive_lines):
         raise ValueError("Bus Receive 36 cannot re-query until its track resolves")
-    print("validated 41 explicit-bus Ambi wrappers and Bus Send 36")
+    print("validated 38 explicit-bus Ambi wrappers and Bus Send 36")
 
 
 if __name__ == "__main__":

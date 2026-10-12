@@ -50,8 +50,8 @@
     "toptoolbarpinned": 0,
     "righttoolbarpinned": 0,
     "bottomtoolbarpinned": 0,
-    "description": "Receives 32 generic bus channels, folds them through fixed Output Autogain Stereo 2, and returns two channels to the normal Live track output. CLAP source channels 33–128 have no Live bus feed.",
-    "digest": "Receives 32 generic bus channels, folds them through fixed Output Autogain Stereo 2, and returns two channels to the normal Live track output. CLAP source channels 33–128 have no Live bus feed.",
+    "description": "Reads 36 channels from the preceding s3g Bus Receive 36, folds them through fixed Output Autogain Stereo 2, and returns two channels to the normal Live track output. CLAP source channels 37–128 have no Live bus feed.",
+    "digest": "Reads 36 channels from the preceding s3g Bus Receive 36, folds them through fixed Output Autogain Stereo 2, and returns two channels to the normal Live track output. CLAP source channels 37–128 have no Live bus feed.",
     "tags": "s3g CLAP Ambisonics 3OA",
     "latency": 0,
     "minimum_live_version": "12.0",
@@ -211,260 +211,6 @@
       },
       {
         "box": {
-          "id": "obj-input-bus-label",
-          "maxclass": "comment",
-          "patching_rect": [
-            16.0,
-            38.0,
-            56.0,
-            20.0
-          ],
-          "text": "RCV BUS",
-          "presentation": 1,
-          "presentation_rect": [
-            16.0,
-            38.0,
-            56.0,
-            20.0
-          ],
-          "numinlets": 1,
-          "numoutlets": 0,
-          "outlettype": [],
-          "fontname": "Arial",
-          "fontsize": 11.0,
-          "textcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number",
-          "maxclass": "live.numbox",
-          "patching_rect": [
-            470.0,
-            95.0,
-            48.0,
-            22.0
-          ],
-          "hidden": 1,
-          "numinlets": 1,
-          "numoutlets": 2,
-          "outlettype": [
-            "",
-            "float"
-          ],
-          "parameter_enable": 1,
-          "activebgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "activetextcolor": [
-            0.72,
-            0.72,
-            0.72,
-            1.0
-          ],
-          "bgcolor": [
-            0.15294,
-            0.15294,
-            0.15294,
-            1.0
-          ],
-          "bordercolor": [
-            0.28,
-            0.28,
-            0.28,
-            1.0
-          ],
-          "focusbordercolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "textcolor": [
-            0.6,
-            0.6,
-            0.6,
-            1.0
-          ],
-          "triangle": 1,
-          "tricolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "fontname": "Arial",
-          "fontsize": 9.0,
-          "saved_attribute_attributes": {
-            "valueof": {
-              "parameter_longname": "Multichannel Input Bus",
-              "parameter_shortname": "Input Bus",
-              "parameter_initial_enable": 1,
-              "parameter_initial": [
-                1
-              ],
-              "parameter_invisible": 0,
-              "parameter_mmin": 1,
-              "parameter_mmax": 16,
-              "parameter_steps": 16,
-              "parameter_modmode": 0,
-              "parameter_type": 1,
-              "parameter_unitstyle": 0
-            }
-          },
-          "varname": "input_bus_number"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu",
-          "maxclass": "umenu",
-          "patching_rect": [
-            78.0,
-            38.0,
-            48.0,
-            20.0
-          ],
-          "presentation": 1,
-          "presentation_rect": [
-            78.0,
-            38.0,
-            48.0,
-            20.0
-          ],
-          "numinlets": 1,
-          "numoutlets": 3,
-          "outlettype": [
-            "int",
-            "",
-            ""
-          ],
-          "parameter_enable": 0,
-          "items": [
-            "01",
-            ",",
-            "02",
-            ",",
-            "03",
-            ",",
-            "04",
-            ",",
-            "05",
-            ",",
-            "06",
-            ",",
-            "07",
-            ",",
-            "08",
-            ",",
-            "09",
-            ",",
-            "10",
-            ",",
-            "11",
-            ",",
-            "12",
-            ",",
-            "13",
-            ",",
-            "14",
-            ",",
-            "15",
-            ",",
-            "16"
-          ],
-          "menumode": 0,
-          "arrow": 1,
-          "allowdrag": 0,
-          "applycolors": 1,
-          "bgfillcolor": [
-            0.2,
-            0.2,
-            0.2,
-            1.0
-          ],
-          "textcolor": [
-            0.74,
-            0.74,
-            0.74,
-            1.0
-          ],
-          "elementcolor": [
-            0.65,
-            0.65,
-            0.65,
-            1.0
-          ],
-          "fontname": "Arial",
-          "fontsize": 11.0,
-          "annotation": "Choose multichannel input bus from the menu.",
-          "annotation_name": "Multichannel Input Bus"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu-to-value",
-          "maxclass": "newobj",
-          "patching_rect": [
-            1050.0,
-            68.0,
-            38.0,
-            22.0
-          ],
-          "text": "+ 1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            "int"
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-value-to-menu",
-          "maxclass": "newobj",
-          "patching_rect": [
-            1100.0,
-            68.0,
-            38.0,
-            22.0
-          ],
-          "text": "- 1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            "int"
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu-set",
-          "maxclass": "newobj",
-          "patching_rect": [
-            1150.0,
-            68.0,
-            78.0,
-            22.0
-          ],
-          "text": "prepend set",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
           "id": "obj-plugin",
           "maxclass": "newobj",
           "patching_rect": [
@@ -473,10 +219,14 @@
             610.0,
             22.0
           ],
-          "text": "plugin~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34",
-          "numinlets": 34,
-          "numoutlets": 34,
+          "text": "plugin~ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38",
+          "numinlets": 38,
+          "numoutlets": 38,
           "outlettype": [
+            "signal",
+            "signal",
+            "signal",
+            "signal",
             "signal",
             "signal",
             "signal",
@@ -526,23 +276,27 @@
           ],
           "presentation": 1,
           "presentation_rect": [
-            16.0,
-            66.0,
-            168.0,
-            68.0
+            12.0,
+            38.0,
+            172.0,
+            120.0
           ],
           "fontname": "Arial",
           "fontsize": 11.0,
-          "channels": 32,
+          "channels": 36,
           "display_range": [
             -70.0,
             6.0
           ],
           "ignoreclick": 0,
           "lastchannelcount": 0,
-          "numinlets": 32,
-          "numoutlets": 35,
+          "numinlets": 36,
+          "numoutlets": 39,
           "outlettype": [
+            "signal",
+            "signal",
+            "signal",
+            "signal",
             "signal",
             "signal",
             "signal",
@@ -666,8 +420,8 @@
             310.0,
             22.0
           ],
-          "text": "s3g.clap~ 32 2",
-          "numinlets": 32,
+          "text": "s3g.clap~ 36 2",
+          "numinlets": 36,
           "numoutlets": 3,
           "outlettype": [
             "signal",
@@ -716,92 +470,18 @@
       },
       {
         "box": {
-          "id": "obj-bus-receive",
+          "id": "obj-bus-insert",
           "maxclass": "newobj",
           "patching_rect": [
-            470.0,
+            650.0,
             230.0,
-            225.0,
+            100.0,
             22.0
           ],
-          "text": "s3g.bus.receive s3g-multichannel-1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-symbol",
-          "maxclass": "newobj",
-          "patching_rect": [
-            470.0,
-            250.0,
-            180.0,
-            22.0
-          ],
-          "text": "sprintf s3g-multichannel-%ld",
+          "text": "s3g.bus.insert",
           "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-init",
-          "maxclass": "newobj",
-          "patching_rect": [
-            680.0,
-            215.0,
-            65.0,
-            22.0
-          ],
-          "text": "loadbang",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            "bang"
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-init-defer",
-          "maxclass": "newobj",
-          "patching_rect": [
-            680.0,
-            250.0,
-            58.0,
-            22.0
-          ],
-          "text": "deferlow",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-output",
-          "maxclass": "message",
-          "patching_rect": [
-            680.0,
-            285.0,
-            78.0,
-            22.0
-          ],
-          "text": "outputvalue",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
+          "numoutlets": 0,
+          "outlettype": []
         }
       },
       {
@@ -2015,117 +1695,6 @@
             ""
           ]
         }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-menu-write-gate",
-          "maxclass": "newobj",
-          "patching_rect": [
-            780.0,
-            425.0,
-            65.0,
-            22.0
-          ],
-          "text": "gate 1 1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-ready",
-          "maxclass": "newobj",
-          "patching_rect": [
-            780.0,
-            335.0,
-            34.0,
-            22.0
-          ],
-          "text": "t b",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-delay",
-          "maxclass": "newobj",
-          "patching_rect": [
-            828.0,
-            335.0,
-            75.0,
-            22.0
-          ],
-          "text": "delay 100",
-          "numinlets": 1,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-order",
-          "maxclass": "newobj",
-          "patching_rect": [
-            920.0,
-            335.0,
-            74.0,
-            22.0
-          ],
-          "text": "t b b b b",
-          "numinlets": 1,
-          "numoutlets": 4,
-          "outlettype": [
-            "",
-            "",
-            "",
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-close",
-          "maxclass": "message",
-          "patching_rect": [
-            1010.0,
-            335.0,
-            30.0,
-            22.0
-          ],
-          "text": "0",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-input-bus-number-replay-open",
-          "maxclass": "message",
-          "patching_rect": [
-            1050.0,
-            335.0,
-            30.0,
-            22.0
-          ],
-          "text": "1",
-          "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
       }
     ],
     "lines": [
@@ -2136,67 +1705,7 @@
             0
           ],
           "destination": [
-            "obj-bus-receive",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-symbol",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-symbol",
-            0
-          ],
-          "destination": [
-            "obj-bus-receive",
-            1
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-init",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-init-defer",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-init-defer",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-output",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-output",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number",
+            "obj-bus-insert",
             0
           ]
         }
@@ -2588,6 +2097,54 @@
       {
         "patchline": {
           "source": [
+            "obj-plugin",
+            34
+          ],
+          "destination": [
+            "obj-autogain-input-gain",
+            32
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-plugin",
+            35
+          ],
+          "destination": [
+            "obj-autogain-input-gain",
+            33
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-plugin",
+            36
+          ],
+          "destination": [
+            "obj-autogain-input-gain",
+            34
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-plugin",
+            37
+          ],
+          "destination": [
+            "obj-autogain-input-gain",
+            35
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
             "obj-autogain-input-gain",
             0
           ],
@@ -2966,6 +2523,54 @@
           "destination": [
             "obj-clap",
             31
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-autogain-input-gain",
+            32
+          ],
+          "destination": [
+            "obj-clap",
+            32
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-autogain-input-gain",
+            33
+          ],
+          "destination": [
+            "obj-clap",
+            33
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-autogain-input-gain",
+            34
+          ],
+          "destination": [
+            "obj-clap",
+            34
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-autogain-input-gain",
+            35
+          ],
+          "destination": [
+            "obj-clap",
+            35
           ]
         }
       },
@@ -4036,198 +3641,6 @@
             0
           ]
         }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-init-defer",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-delay",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-device",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-ready",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-ready",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-delay",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-delay",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-order",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            3
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-close",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-close",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-write-gate",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            2
-          ],
-          "destination": [
-            "obj-input-bus-output",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            1
-          ],
-          "destination": [
-            "obj-input-bus-number-menu",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-order",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-replay-open",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-replay-open",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-write-gate",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-to-value",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-value-to-menu",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-value-to-menu",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-set",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu-set",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu-to-value",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number-menu-write-gate",
-            1
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-input-bus-number-menu-write-gate",
-            0
-          ],
-          "destination": [
-            "obj-input-bus-number",
-            0
-          ]
-        }
       }
     ],
     "parameters": {
@@ -4238,11 +3651,6 @@
       ],
       "parameterbanks": {},
       "inherited_shortname": 1,
-      "obj-input-bus-number": [
-        "Multichannel Input Bus",
-        "Input Bus",
-        0
-      ],
       "obj-autogain-input-gain": [
         "Output AutoGain Input Gain",
         "Input Gain",
