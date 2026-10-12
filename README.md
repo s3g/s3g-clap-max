@@ -59,6 +59,31 @@ parameters to Live automation; **EDITOR** opens the CLAP editor. Saving a Live
 Set stores the plugin's state, but the CLAP plugin must also be installed on
 the machine that reopens it.
 
+### Available wrappers
+
+The current installer includes dedicated wrappers for these 65 s3g-dsp plugins
+(names below omit the shared `s3g` prefix and CLAP channel suffix):
+
+- **Ambi Encoder:** Acid, Cartography, Cloud, Cryosphere, Horizon, Insect,
+  Medium, Membrane Kick, Modal, Neural Ecology, Path, Point, Pulsar,
+  Pyrosphere, Ray, Ray Bilocation, Stochastic, Surface Terrain, VOT, Vox,
+  Water, Wave Terrain, Wind, Wrangler.
+- **Ambi Effect:** DJ Filter, Delay, Displacement, Gain, Partial Trace,
+  Pitch, Resonance Print, Response Trace.
+- **Ambi Decoder:** Adaptive, Head, Object, Speaker, Stereo, Sub (each has a
+  `Main` wrapper).
+- **Panner:** DBAP, LBAP, Layout, VBAP (each has a `Main` wrapper).
+- **Output:** Autogain Stereo, Autogain Quad Main.
+- **Drum:** Break, Clap, Concert Bass, Cowbell, Crash, Echo, Floor Tom,
+  Hi-Hat, Kick, Mixer 16, Overload, Snare, Toms.
+- **Sample:** Circulator 2, Cutups 2, Doubles 2, Grains 2, Lanes 2, Motion 2,
+  Player 2, Wavesets 2.
+
+The installer also includes general-purpose Ambi Source, Insert, and Decoder
+Main devices, plus multichannel routing devices. Other plugins in the
+[s3g-dsp plugin index](https://s3g.github.io/s3g-dsp/plugin-index.html) do
+not yet have dedicated M4L wrappers, though `s3g.clap~` can host them in Max.
+
 For a multichannel Ambisonic chain across tracks:
 
 1. Put an **s3g Ambi Encoder …** device on the source track, followed by
