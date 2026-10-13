@@ -175,9 +175,6 @@ def main() -> None:
     assert len(SPECS) == 26
     for name, values in SPECS.items():
         validate(name, *values)
-    for excluded in ("s3g Sample Neon 32", "s3g Sample Decks 32"):
-        assert not (ROOT / "source/m4l" / f"{excluded}.maxpat").exists()
-        assert not (ROOT / "package/devices" / f"{excluded}.amxd").exists()
     print(f"validated {len(SPECS)} new fixed M4L wrappers")
 
 

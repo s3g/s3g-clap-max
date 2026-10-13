@@ -87,10 +87,11 @@ test Set to confirm its samples are available before a performance or transfer.
 
 ### Available wrappers
 
-The current installer includes dedicated wrappers for these 118 s3g-dsp plugins
+The current installer includes dedicated wrappers for these 123 s3g-dsp plugins
 (names below omit the shared `s3g` prefix):
 
 - **Tracker:** channel-addressed MIDI sequencer.
+- **MIDI utilities:** Relay, Utility NIM Gesture, Utility Neon MIDI.
 - **Ambi Encoder:** Acid, Cartography, Cloud, Cryosphere, Horizon, Insect,
   Medium, Membrane Kick, Modal, Neural Ecology, Path, Point, Pulsar,
   Pyrosphere, Ray, Ray Bilocation, Stochastic, Surface Terrain, VOT, Vox,
@@ -113,9 +114,9 @@ The current installer includes dedicated wrappers for these 118 s3g-dsp plugins
 - **Matrix:** Group 32, Upmix 64.
 - **Drum:** Break, Clap, Concert Bass, Cowbell, Crash, Echo, Floor Tom,
   Hi-Hat, Kick, Mixer 16, Overload, Snare, Toms.
-- **Sample:** Circulator 2, Cutups 2/32, Doubles 2, Grains 2/32, Kit 32,
+- **Sample:** Circulator 2, Cutups 2/32, Decks 32, Doubles 2, Grains 2/32, Kit 32,
   Lanes 2/32, Motion 2/32, Player 2/16, Rings 8, Slicer 2/16,
-  Wavesets 2/32.
+  Neon 32, Wavesets 2/32.
 
 The installer also includes **s3g Bus Send 36**, **s3g Bus Receive 36**, and
 the CLAP-free **s3g Main Hardware Out 32**. Other
@@ -123,12 +124,16 @@ plugins in the
 [s3g-dsp plugin index](https://s3g.github.io/s3g-dsp/plugin-index.html)
 do not yet have dedicated M4L wrappers, though `s3g.clap~` can host them in Max.
 
-For Tracker, place **s3g Tracker** on a MIDI track and choose its **MIDI BUS**
-(1–16). On each receiving s3g instrument wrapper, choose the same **MIDI BUS**;
-the default **OFF** disconnects it. Set that CLAP's own MIDI receive channel
-in its editor to the desired Tracker lane. The separate Tracker bus preserves
-MIDI status/channel bytes; it does not use Live's inter-track MIDI routing or
-the 36-channel audio bus. For more detail and timing caveats, see
+For Tracker or a MIDI utility, choose a nonzero **MIDI OUT** bus (1–16), then
+choose that number as **MIDI IN** (or **MIDI BUS** on earlier wrappers) on a
+receiving device. The default **OFF** disconnects it. Tracker now also has an
+opt-in MIDI IN bus so Utility Neon MIDI can feed Tracker; give Tracker a
+different MIDI OUT bus to reach an instrument. If a MIDI-only device's IN and
+OUT are set to the same bus, its outgoing MIDI is suppressed to prevent a
+feedback loop. Set each receiving CLAP's own MIDI channel in its
+editor as needed. This private bus preserves MIDI status/channel bytes; it is
+separate from Live's inter-track MIDI routing and the 36-channel audio bus.
+For more detail and timing caveats, see
 [the M4L routing guide](package/docs/s3g-clap-m4l-routing.md).
 
 Spectral Spray 2 is a normal stereo insert. Delay Field takes Live stereo input
@@ -217,11 +222,28 @@ Sample Rings 8 is an audio-input capture device: put Bus Receive 36 before it
 for its eight input channels, then Bus Send 36 after it if routing its eight
 outputs to another track. Slicer 2 returns normal Live stereo. PLAY auditions
 the loaded sound; KILL resets voices, while Rings' STOP pauses its transport.
-Sample Neon 32 and Decks 32 do not have Live devices.
+Sample Neon 32 and Decks 32 also accept 32 capture-input channels from a
+preceding Bus Receive 36. Select a compatible input group and record source
+in the CLAP editor. Their 32 output slots can go to Bus Send 36 or Main
+Hardware Out 32; only the slots enabled by the CLAP's output format carry
+sound. Neon's PLAY auditions a pad; Decks' A PLAY/B PLAY address its default
+Beatpad 2 mode. KILL stops sounding voices. Their
+editor state is saved with the Set. Use LINK or EMBED for media storage.
+
+Relay, Utility NIM Gesture, and Utility Neon MIDI are MIDI-only: their silent
+audio outlets keep CLAP processing active, while MIDI OUT carries their
+channel-preserving MIDI. Utility Neon MIDI can drive Tracker through its MIDI
+IN bus, or play a Sample wrapper directly. For a Reloop NEON on macOS, choose
+the utility's direct USB input to avoid Live rewriting hardware MIDI channels.
+NIM Gesture can send its control stream to No Input Mixer over the private
+MIDI bus; controller-ring feedback from No Input Mixer is not yet returned to
+physical MIDI hardware by these wrappers.
 
 Not every CLAP fits this 36-channel bus. The
-64/128-channel **Ambi Matrix Group** and **Ambi Transform Grp Rot** variants,
-128-channel **Mixer Node Bus** variants, and **Array Calibrate 64** do not have Live devices:
+64/128-channel **Ambi Transform Grp Depth**, **Ambi Matrix Group**, and
+**Ambi Transform Grp Rot** variants, **Ambi Mixer Node Bus 128**,
+**Array Calibrate 64**, **Matrix Group 64**, and **Mixer Node Bus 128**
+(ten plugins total) do not have Live devices:
 their full port width cannot pass through the present 36-slot bus. These are
 intentional omissions, not reduced-channel wrappers. Check the available
 wrapper list above before planning a Live Set around another plugin.

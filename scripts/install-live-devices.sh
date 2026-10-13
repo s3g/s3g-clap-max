@@ -127,6 +127,11 @@ devices=(
   "s3g Sample Slicer 2.amxd"
   "s3g Sample Slicer 16.amxd"
   "s3g Sample Wavesets 32.amxd"
+  "s3g Sample Neon 32.amxd"
+  "s3g Sample Decks 32.amxd"
+  "s3g Relay.amxd"
+  "s3g Utility NIM Gesture.amxd"
+  "s3g Utility Neon MIDI.amxd"
 )
 
 for device in "${devices[@]}"; do
@@ -138,6 +143,7 @@ for device in "${devices[@]}"; do
     python3 -B "$repo_dir/scripts/generate-m4l-field-tools.py"
     python3 -B "$repo_dir/scripts/generate-m4l-calibration-processors.py"
     python3 -B "$repo_dir/scripts/generate-m4l-output-tools.py"
+    python3 -B "$repo_dir/scripts/generate-m4l-final-midi-sample.py"
     python3 -B "$repo_dir/scripts/generate-m4l-tracker.py"
     break
   fi

@@ -11,17 +11,17 @@
     "rect": [
       120.0,
       90.0,
-      2100.0,
-      950.0
+      2490.0,
+      1200.0
     ],
     "openrect": [
       0.0,
       0.0,
-      240.0,
+      336.0,
       169.0
     ],
     "openinpresentation": 1,
-    "devicewidth": 240.0,
+    "devicewidth": 336.0,
     "default_fontsize": 12.0,
     "default_fontface": 0,
     "default_fontname": "Arial",
@@ -50,8 +50,8 @@
     "toptoolbarpinned": 0,
     "righttoolbarpinned": 0,
     "bottomtoolbarpinned": 0,
-    "description": "Tracker CLAP sequencer. Its channel-addressed output is sent to a selected private s3g MIDI bus; the audio outlet is silent but keeps the CLAP process clock active. The bus defaults to OFF.",
-    "digest": "Tracker CLAP sequencer. Its channel-addressed output is sent to a selected private s3g MIDI bus; the audio outlet is silent but keeps the CLAP process clock active. The bus defaults to OFF.",
+    "description": "MIDI-only CLAP. Its channel-addressed output is sent to a selected private s3g MIDI bus; the audio outlet is silent but keeps the CLAP process clock active. The bus defaults to OFF. Tracker MIDI bus is opt-in and preserves channels.",
+    "digest": "MIDI-only CLAP. Its channel-addressed output is sent to a selected private s3g MIDI bus; the audio outlet is silent but keeps the CLAP process clock active. The bus defaults to OFF. Tracker MIDI bus is opt-in and preserves channels.",
     "tags": "s3g CLAP MIDI sequencer",
     "latency": 0,
     "minimum_live_version": "12.0",
@@ -64,14 +64,14 @@
           "patching_rect": [
             1770,
             40,
-            240.0,
+            336.0,
             169.0
           ],
           "presentation": 1,
           "presentation_rect": [
             0.0,
             0.0,
-            240.0,
+            336.0,
             169.0
           ],
           "numinlets": 1,
@@ -501,7 +501,7 @@
             58.0,
             20.0
           ],
-          "text": "MIDI BUS",
+          "text": "MIDI OUT",
           "presentation": 1,
           "presentation_rect": [
             84.0,
@@ -670,15 +670,52 @@
       },
       {
         "box": {
-          "id": "obj-tracker-bus-active",
+          "id": "obj-tracker-bus-pair",
           "maxclass": "newobj",
           "patching_rect": [
             680,
             620,
-            45,
+            60,
             22.0
           ],
-          "text": "> 0",
+          "text": "pak i i",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-bus-unpack",
+          "maxclass": "newobj",
+          "patching_rect": [
+            680,
+            680,
+            75,
+            22.0
+          ],
+          "text": "unpack i i",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-bus-safe",
+          "maxclass": "newobj",
+          "patching_rect": [
+            680,
+            740,
+            235,
+            22.0
+          ],
+          "text": "expr ($i1 > 0) && ($i1 != $i2)",
           "numinlets": 2,
           "numoutlets": 1,
           "outlettype": [
@@ -1138,7 +1175,7 @@
           "maxclass": "newobj",
           "patching_rect": [
             680,
-            740,
+            800,
             76,
             22.0
           ],
@@ -1156,7 +1193,7 @@
           "maxclass": "message",
           "patching_rect": [
             780,
-            740,
+            800,
             92,
             22
           ],
@@ -1207,6 +1244,408 @@
             "int",
             "",
             "int",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-number",
+          "maxclass": "live.numbox",
+          "patching_rect": [
+            2150,
+            80.0,
+            58.0,
+            22.0
+          ],
+          "hidden": 1,
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            "float"
+          ],
+          "parameter_enable": 1,
+          "activebgcolor": [
+            0.15294,
+            0.15294,
+            0.15294,
+            1.0
+          ],
+          "activetextcolor": [
+            0.72,
+            0.72,
+            0.72,
+            1.0
+          ],
+          "bgcolor": [
+            0.15294,
+            0.15294,
+            0.15294,
+            1.0
+          ],
+          "bordercolor": [
+            0.28,
+            0.28,
+            0.28,
+            1.0
+          ],
+          "focusbordercolor": [
+            0.65,
+            0.65,
+            0.65,
+            1.0
+          ],
+          "textcolor": [
+            0.6,
+            0.6,
+            0.6,
+            1.0
+          ],
+          "triangle": 1,
+          "tricolor": [
+            0.65,
+            0.65,
+            0.65,
+            1.0
+          ],
+          "fontname": "Arial",
+          "fontsize": 9.0,
+          "saved_attribute_attributes": {
+            "valueof": {
+              "parameter_longname": "Tracker MIDI Bus",
+              "parameter_shortname": "TRK Bus",
+              "parameter_initial_enable": 1,
+              "parameter_initial": [
+                0
+              ],
+              "parameter_invisible": 0,
+              "parameter_mmin": 0,
+              "parameter_mmax": 16,
+              "parameter_steps": 17,
+              "parameter_modmode": 0,
+              "parameter_type": 1,
+              "parameter_unitstyle": 0
+            }
+          },
+          "varname": "tracker_midi_bus_number"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-number-menu",
+          "maxclass": "umenu",
+          "patching_rect": [
+            2150,
+            138.0,
+            58.0,
+            20.0
+          ],
+          "presentation": 1,
+          "presentation_rect": [
+            266.0,
+            10.0,
+            58.0,
+            20.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 3,
+          "outlettype": [
+            "int",
+            "",
+            ""
+          ],
+          "parameter_enable": 0,
+          "items": [
+            "OFF",
+            ",",
+            "01",
+            ",",
+            "02",
+            ",",
+            "03",
+            ",",
+            "04",
+            ",",
+            "05",
+            ",",
+            "06",
+            ",",
+            "07",
+            ",",
+            "08",
+            ",",
+            "09",
+            ",",
+            "10",
+            ",",
+            "11",
+            ",",
+            "12",
+            ",",
+            "13",
+            ",",
+            "14",
+            ",",
+            "15",
+            ",",
+            "16"
+          ],
+          "menumode": 0,
+          "arrow": 1,
+          "allowdrag": 0,
+          "applycolors": 1,
+          "bgfillcolor": [
+            0.2,
+            0.2,
+            0.2,
+            1.0
+          ],
+          "textcolor": [
+            0.74,
+            0.74,
+            0.74,
+            1.0
+          ],
+          "elementcolor": [
+            0.65,
+            0.65,
+            0.65,
+            1.0
+          ],
+          "fontname": "Arial",
+          "fontsize": 11.0,
+          "annotation": "Choose tracker midi bus from the menu.",
+          "annotation_name": "Tracker MIDI Bus"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-number-menu-to-value",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            196.0,
+            38.0,
+            22.0
+          ],
+          "text": "+ 0",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            "int"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-number-value-to-menu",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            254.0,
+            38.0,
+            22.0
+          ],
+          "text": "- 0",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            "int"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-number-menu-set",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            312.0,
+            78.0,
+            22.0
+          ],
+          "text": "prepend set",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-label",
+          "maxclass": "comment",
+          "patching_rect": [
+            2150,
+            370.0,
+            58.0,
+            20.0
+          ],
+          "text": "MIDI IN",
+          "presentation": 1,
+          "presentation_rect": [
+            208.0,
+            10.0,
+            58.0,
+            20.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 0,
+          "outlettype": [],
+          "fontname": "Arial",
+          "fontsize": 11.0,
+          "textcolor": [
+            0.6,
+            0.6,
+            0.6,
+            1.0
+          ],
+          "annotation": "Tracker MIDI bus; OFF disconnects this device."
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-receive",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            428.0,
+            80,
+            22.0
+          ],
+          "text": "receive",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-symbol",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            486.0,
+            220,
+            22.0
+          ],
+          "text": "sprintf s3g-tracker-midi-%ld",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-set",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            544.0,
+            90,
+            22.0
+          ],
+          "text": "prepend set",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-change",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            602.0,
+            60,
+            22.0
+          ],
+          "text": "change",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-switch",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            660.0,
+            60,
+            22.0
+          ],
+          "text": "t i b",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-panic",
+          "maxclass": "message",
+          "patching_rect": [
+            2150,
+            718.0,
+            80,
+            22
+          ],
+          "text": "killvoices",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-replay-delay",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2150,
+            776.0,
+            76,
+            22.0
+          ],
+          "text": "delay 250",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-tracker-midi-bus-replay",
+          "maxclass": "message",
+          "patching_rect": [
+            2150,
+            834.0,
+            92,
+            22
+          ],
+          "text": "outputvalue",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
             ""
           ]
         }
@@ -1388,7 +1827,7 @@
             0
           ],
           "destination": [
-            "obj-tracker-bus-active",
+            "obj-tracker-bus-pair",
             0
           ]
         }
@@ -1396,7 +1835,43 @@
       {
         "patchline": {
           "source": [
-            "obj-tracker-bus-active",
+            "obj-tracker-bus-pair",
+            0
+          ],
+          "destination": [
+            "obj-tracker-bus-unpack",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-bus-unpack",
+            1
+          ],
+          "destination": [
+            "obj-tracker-bus-safe",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-bus-unpack",
+            0
+          ],
+          "destination": [
+            "obj-tracker-bus-safe",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-bus-safe",
             0
           ],
           "destination": [
@@ -1956,6 +2431,210 @@
             0
           ]
         }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-number-menu",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-number-menu-to-value",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-number",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-number-value-to-menu",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-number-value-to-menu",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-number-menu-set",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-number-menu-set",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-number-menu",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-number-menu-to-value",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-number",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-number",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-change",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-change",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-switch",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-switch",
+            1
+          ],
+          "destination": [
+            "obj-tracker-midi-panic",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-panic",
+            0
+          ],
+          "destination": [
+            "obj-clap",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-switch",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-symbol",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-symbol",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-set",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-set",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-receive",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-receive",
+            0
+          ],
+          "destination": [
+            "obj-clap",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-device",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-replay-delay",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-replay-delay",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-replay",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-replay",
+            0
+          ],
+          "destination": [
+            "obj-tracker-midi-bus-number",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-bus-number",
+            0
+          ],
+          "destination": [
+            "obj-tracker-bus-pair",
+            1
+          ]
+        }
       }
     ],
     "parameters": {
@@ -1967,6 +2646,11 @@
       "parameterbanks": {},
       "inherited_shortname": 1,
       "obj-tracker-bus-number": [
+        "Tracker MIDI Bus",
+        "TRK Bus",
+        0
+      ],
+      "obj-tracker-midi-bus-number": [
         "Tracker MIDI Bus",
         "TRK Bus",
         0

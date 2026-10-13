@@ -78,7 +78,7 @@ def check_tracker() -> None:
     assert boxes["obj-tracker-output-route"]["text"] == "route midioutat"
     assert boxes["obj-tracker-prepend"]["text"] == "prepend midieventat"
     assert boxes["obj-tracker-forward"]["text"] == "forward"
-    assert boxes["obj-tracker-bus-label"]["text"] == "MIDI BUS"
+    assert boxes["obj-tracker-bus-label"]["text"] == "MIDI OUT"
     assert patch["parameters"]["obj-tracker-bus-number"] == [
         "Tracker MIDI Bus", "TRK Bus", 0,
     ]
@@ -90,7 +90,11 @@ def check_tracker() -> None:
     assert ("obj-tracker-prepend", 0, "obj-tracker-gate", 1) in lines
     assert ("obj-tracker-gate", 0, "obj-tracker-forward", 0) in lines
     assert ("obj-tracker-bus-address", 0, "obj-tracker-forward", 0) in lines
-    assert ("obj-tracker-bus-active", 0, "obj-tracker-gate", 0) in lines
+    assert boxes["obj-tracker-bus-safe"]["text"] == (
+        "expr ($i1 > 0) && ($i1 != $i2)")
+    assert ("obj-tracker-bus-safe", 0, "obj-tracker-gate", 0) in lines
+    assert ("obj-tracker-midi-bus-number", 0,
+            "obj-tracker-bus-pair", 1) in lines
     assert boxes["obj-tracker-bus-change"]["text"] == "change"
     assert boxes["obj-tracker-bus-switch"]["text"] == "t i b"
     assert boxes["obj-tracker-old-bus-panic"]["text"] == "killvoices"
@@ -106,7 +110,9 @@ def check_tracker() -> None:
     assert ("obj-plugsync", 0, "obj-transport-pack", 0) in lines
     assert all(("obj-clap", 0, "obj-plugout", channel) in lines
                for channel in (0, 1))
-    assert "obj-tracker-midi-receive" not in boxes
+    assert boxes["obj-tracker-midi-receive"]["text"] == "receive"
+    assert boxes["obj-tracker-midi-bus-label"]["text"] == "MIDI IN"
+    assert ("obj-tracker-midi-receive", 0, "obj-clap", 0) in lines
     check_no_overlap("s3g Tracker", patch)
 
 
@@ -128,7 +134,8 @@ def check_receivers() -> None:
         assert boxes["obj-tracker-midi-symbol"]["text"] == (
             "sprintf s3g-tracker-midi-%ld"), source.stem
         carrier = boxes["obj-tracker-midi-bus-number"]
-        assert boxes["obj-tracker-midi-bus-label"]["text"] == "MIDI BUS"
+        assert boxes["obj-tracker-midi-bus-label"]["text"] in (
+            "MIDI BUS", "MIDI IN")
         assert patch["parameters"]["obj-tracker-midi-bus-number"] == [
             "Tracker MIDI Bus", "TRK Bus", 0,
         ]

@@ -30,14 +30,14 @@ BUS_PREFIX = "s3g-tracker-midi"
 BUS_LABELS = ["OFF", *(f"{number:02d}" for number in range(1, 17))]
 
 
-def bus_controls(prefix: str, x: float) -> list[dict[str, object]]:
+def bus_controls(prefix: str, x: float, label: str = "MIDI BUS") -> list[dict[str, object]]:
     controls = base.routing_menu_controls(
         f"{prefix}-number", "Tracker MIDI Bus", "TRK Bus",
         0, 16, 0, x + 58.0, 58.0, labels=BUS_LABELS,
     )
     controls.append(base.box(
         f"{prefix}-label", "comment", [x, 10.0, 58.0, 20.0],
-        text="MIDI BUS", presentation_rect=[x, 10.0, 58.0, 20.0],
+        text=label, presentation_rect=[x, 10.0, 58.0, 20.0],
         fontname=base.UI_FONT, fontsize=base.UI_FONT_SIZE,
         textcolor=base.COLOR_DIM,
         annotation="Tracker MIDI bus; OFF disconnects this device.",
@@ -61,8 +61,9 @@ def bus_replay(prefix: str, trigger: str = "obj-device") -> tuple[
     return boxes, lines
 
 
-def tracker_device() -> dict[str, object]:
-    """A Max Instrument so the zero-audio-output CLAP still gets DSP ticks."""
+def tracker_device(name: str = TRACKER_NAME, plugin_id: str = TRACKER_ID,
+                   parameters: tuple[base.FixedParameter, ...] = ()) -> dict[str, object]:
+    """A Max Instrument so a zero-audio-output CLAP still gets DSP ticks."""
     boxes = base.common_ui(False, base.COMPACT_DEVICE_HEIGHT,
                            allow_plugin_picker=False)
     clap = base.clap_box("s3g.clap~ 0 1", 40, 270, 0, 1)
@@ -73,7 +74,7 @@ def tracker_device() -> dict[str, object]:
                         110, 2, 2, ["signal", "signal"]),
         base.new_object("obj-device", "s3g.live.thisdevice", 700, 100,
                         125, 1, 1),
-        *bus_controls("obj-tracker-bus", 84.0),
+        *bus_controls("obj-tracker-bus", 84.0, "MIDI OUT"),
         base.new_object("obj-tracker-output-route", "route midioutat",
                         400, 270, 125, 1, 2),
         base.new_object("obj-tracker-prepend", "prepend midieventat",
@@ -90,8 +91,13 @@ def tracker_device() -> dict[str, object]:
                  [780, 370, 76, 22], text="killvoices"),
         base.new_object("obj-tracker-bus-order", "t i i", 700, 155,
                         45, 1, 2),
-        base.new_object("obj-tracker-bus-active", "> 0", 700, 210,
-                        45, 2, 1),
+        base.new_object("obj-tracker-bus-pair", "pak i i", 700, 210,
+                        60, 2, 1),
+        base.new_object("obj-tracker-bus-unpack", "unpack i i", 700, 250,
+                        75, 1, 2),
+        base.new_object("obj-tracker-bus-safe",
+                        "expr ($i1 > 0) && ($i1 != $i2)", 700, 290,
+                        235, 2, 1),
         base.new_object("obj-tracker-bus-symbol",
                         f"sprintf {BUS_PREFIX}-%ld", 800, 210,
                         220, 1, 1),
@@ -99,12 +105,15 @@ def tracker_device() -> dict[str, object]:
                         800, 265, 96, 1, 1),
     ])
     runtime_boxes, runtime_lines = base.common_runtime(
-        1, TRACKER_NAME, allow_plugin_picker=False,
-        default_plugin_id=TRACKER_ID,
+        1, name, allow_plugin_picker=False,
+        fixed_parameters=bool(parameters), default_plugin_id=plugin_id,
     )
+    parameter_boxes, parameter_lines = base.fixed_parameter_runtime(
+        parameters, (),
+    ) if parameters else ([], [])
     replay_boxes, replay_lines = bus_replay("obj-tracker-bus")
     midi_boxes, midi_lines = base.midi_input_bridge()
-    boxes.extend((*runtime_boxes, *replay_boxes, *midi_boxes))
+    boxes.extend((*runtime_boxes, *replay_boxes, *midi_boxes, *parameter_boxes))
     lines = [
         base.line("obj-clap", 0, "obj-plugout", 0),
         base.line("obj-clap", 0, "obj-plugout", 1),
@@ -125,14 +134,19 @@ def tracker_device() -> dict[str, object]:
         base.line("obj-tracker-bus-order", 1, "obj-tracker-bus-symbol", 0),
         base.line("obj-tracker-bus-symbol", 0, "obj-tracker-bus-address", 0),
         base.line("obj-tracker-bus-address", 0, "obj-tracker-forward", 0),
-        base.line("obj-tracker-bus-order", 0, "obj-tracker-bus-active", 0),
-        base.line("obj-tracker-bus-active", 0, "obj-tracker-gate", 0),
+        base.line("obj-tracker-bus-order", 0, "obj-tracker-bus-pair", 0),
+        base.line("obj-tracker-bus-pair", 0, "obj-tracker-bus-unpack", 0),
+        # unpack fires right-to-left, updating the input bus before output
+        # number triggers expr. Identical IN/OUT numbers close the send gate.
+        base.line("obj-tracker-bus-unpack", 1, "obj-tracker-bus-safe", 1),
+        base.line("obj-tracker-bus-unpack", 0, "obj-tracker-bus-safe", 0),
+        base.line("obj-tracker-bus-safe", 0, "obj-tracker-gate", 0),
         *base.routing_menu_lines("obj-tracker-bus-number"),
-        *runtime_lines, *replay_lines, *midi_lines,
+        *runtime_lines, *replay_lines, *midi_lines, *parameter_lines,
     ]
     document = base.patcher(
-        TRACKER_NAME,
-        "Tracker CLAP sequencer. Its channel-addressed output is sent to a "
+        name,
+        "MIDI-only CLAP. Its channel-addressed output is sent to a "
         "selected private s3g MIDI bus; the audio outlet is silent but keeps "
         "the CLAP process clock active. The bus defaults to OFF.",
         boxes, lines, False, instrument=True,
@@ -142,6 +156,8 @@ def tracker_device() -> dict[str, object]:
     document["patcher"]["parameters"]["obj-tracker-bus-number"] = [
         "Tracker MIDI Bus", "TRK Bus", 0,
     ]
+    if parameters:
+        base.register_fixed_parameters(document, parameters)
     arrange_tracker_debug(document)
     return document
 
@@ -164,7 +180,9 @@ def arrange_tracker_debug(document: dict[str, object]) -> None:
         "obj-tracker-bus-switch": (680, 440),
         "obj-tracker-old-bus-panic": (780, 500),
         "obj-tracker-bus-order": (680, 560),
-        "obj-tracker-bus-active": (680, 620),
+        "obj-tracker-bus-pair": (680, 620),
+        "obj-tracker-bus-unpack": (680, 680),
+        "obj-tracker-bus-safe": (680, 740),
         "obj-tracker-bus-symbol": (780, 620),
         "obj-tracker-bus-address": (780, 680),
         "obj-tracker-bus-number": (680, 260),
@@ -173,8 +191,8 @@ def arrange_tracker_debug(document: dict[str, object]) -> None:
         "obj-tracker-bus-number-value-to-menu": (780, 320),
         "obj-tracker-bus-number-menu-set": (980, 320),
         "obj-tracker-bus-label": (680, 200),
-        "obj-tracker-bus-replay-delay": (680, 740),
-        "obj-tracker-bus-replay": (780, 740),
+        "obj-tracker-bus-replay-delay": (680, 800),
+        "obj-tracker-bus-replay": (780, 800),
         "obj-gui-button": (680, 40),
         "obj-editor-trigger": (780, 40), "obj-editor": (880, 40),
         "obj-loadbang": (1120, 100),
@@ -192,17 +210,30 @@ def arrange_tracker_debug(document: dict[str, object]) -> None:
         "obj-device": (1530, 100),
         "obj-ui-background": (1770, 40),
     }
+    if "obj-param-gate" in boxes:
+        positions.update({
+            "obj-param-loaded-trigger": (1770, 160),
+            "obj-param-enable": (1880, 160),
+            "obj-param-resync-delay": (1770, 220),
+            "obj-param-gate": (1770, 280),
+            "obj-paramchanged-route": (1770, 340),
+        })
+        for row, object_id in enumerate(sorted(
+                key for key in boxes if key.startswith("obj-param-")
+                and key not in positions)):
+            positions[object_id] = (1770 + 140 * (row % 3),
+                                    420 + 60 * (row // 3))
     if set(boxes) != set(positions):
         raise ValueError(f"Tracker layout missed {sorted(set(boxes) - set(positions))}")
     for object_id, (x, y) in positions.items():
         boxes[object_id]["patching_rect"][:2] = [x, y]
-    patch["rect"] = [120.0, 90.0, 2100.0, 950.0]
+    patch["rect"] = [120.0, 90.0, 2350.0, 1200.0]
 
 
 def augment_receiver(name: str, document: dict[str, object]) -> None:
     patch = document["patcher"]
     boxes = {entry["box"]["id"]: entry["box"] for entry in patch["boxes"]}
-    if "obj-midi-in" not in boxes or name == TRACKER_NAME:
+    if "obj-midi-in" not in boxes:
         return
     if "obj-tracker-midi-bus-number" in boxes:
         return
@@ -221,7 +252,7 @@ def augment_receiver(name: str, document: dict[str, object]) -> None:
     label_x = top_right + 8.0
     prefix = "obj-tracker-midi-bus"
     additions = [
-        *bus_controls(prefix, label_x),
+        *bus_controls(prefix, label_x, "MIDI IN"),
         base.new_object("obj-tracker-midi-receive",
                         "receive", 0, 0, 80, 1, 1),
         base.new_object("obj-tracker-midi-symbol",
@@ -263,11 +294,16 @@ def augment_receiver(name: str, document: dict[str, object]) -> None:
         base.line("obj-tracker-midi-receive", 0, "obj-clap", 0),
         *replay_lines,
     ])
+    if "obj-tracker-bus-pair" in boxes:
+        patch["lines"].append(base.line(
+            f"{prefix}-number", 0, "obj-tracker-bus-pair", 1))
     patch["parameters"][f"{prefix}-number"] = [
         "Tracker MIDI Bus", "TRK Bus", 0,
     ]
-    patch["devicewidth"] = base.fit_presentation_width(patch["boxes"])
+    patch["devicewidth"] = base.fit_presentation_width(
+        patch["boxes"], patch["devicewidth"])
     patch["openrect"][2] = patch["devicewidth"]
+    boxes["obj-ui-background"]["presentation_rect"][2] = patch["devicewidth"]
     patch["rect"][2] = max(patch["rect"][2], lane_x + 340.0)
     patch["rect"][3] = max(patch["rect"][3], 850.0)
     patch["description"] += " Tracker MIDI bus is opt-in and preserves channels."
@@ -275,7 +311,9 @@ def augment_receiver(name: str, document: dict[str, object]) -> None:
 
 
 def main() -> None:
-    base.write_device(TRACKER_NAME, tracker_device())
+    tracker = tracker_device()
+    augment_receiver(TRACKER_NAME, tracker)
+    base.write_device(TRACKER_NAME, tracker, arrange=False)
     count = 0
     for path in sorted(base.SOURCE_DIR.glob("*.maxpat")):
         if path.stem == TRACKER_NAME:
