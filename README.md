@@ -87,7 +87,7 @@ test Set to confirm its samples are available before a performance or transfer.
 
 ### Available wrappers
 
-The current installer includes dedicated wrappers for these 110 s3g-dsp plugins
+The current installer includes dedicated wrappers for these 118 s3g-dsp plugins
 (names below omit the shared `s3g` prefix):
 
 - **Tracker:** channel-addressed MIDI sequencer.
@@ -101,14 +101,16 @@ The current installer includes dedicated wrappers for these 110 s3g-dsp plugins
 - **Ambi Decoder:** Adaptive, Head, Object, Speaker, Stereo, Sub.
 - **Analyzer:** Meter 64, Ambi Energy 64.
 - **Panner:** DBAP, LBAP, Layout, VBAP.
-- **Output:** Autogain Stereo, Autogain Quad.
+- **Output:** Autogain Stereo, Autogain Quad, Crossover 64.
+- **Array Calibrate:** 16, 26, 32.
 - **Effect:** Delay Field, Spectral Spray 2, Spectral Spray 8.
-- **Processor:** Ambi Imprint 64, Buffer 8, Conduit 2, Delay 8, Delay 24, Errant 2,
-  Feedback Shift 8, Fissure 8, Formant Matrix 2, LF Synth 2, Lowform 2,
-  Spectral 8, Spectral 24, Stack 2, Wave Geometry 8.
+- **Processor:** Ambi Grain 16, Ambi Imprint 64, Buffer 8, Conduit 2,
+  Delay 8, Delay 24, Errant 2, Fault 8, Feedback Shift 8, Fissure 8,
+  Formant Matrix 2, LF Synth 2, Lowform 2, No Input Mixer 8, Spectral 8, Spectral 24,
+  Stack 2, Wave Geometry 8.
 - **Macro:** Delay 8/24, Pitch 8/24, Fracture Mono 1/8/24,
   Shred Mono 1/8/24.
-- **Matrix:** Group 32.
+- **Matrix:** Group 32, Upmix 64.
 - **Drum:** Break, Clap, Concert Bass, Cowbell, Crash, Echo, Floor Tom,
   Hi-Hat, Kick, Mixer 16, Overload, Snare, Toms.
 - **Sample:** Circulator 2, Cutups 2/32, Doubles 2, Grains 2/32, Kit 32,
@@ -145,6 +147,49 @@ excitation and has an **EXCITE** button. Fissure 8 instead takes optional Live
 stereo input, accepts MIDI notes, and has a **STRIKE** button. Its eight output
 slots need a following Bus Send 36 set to **CHAIN 36**, **CH 8**; output mode
 can fold to the first two or four slots without changing its fixed bus width.
+
+Array Calibrate 16/26/32 is a matching-width multichannel insert for a
+rendered speaker feed. Put Bus Receive 36 before it when the feed comes from
+another track. Follow it with Main Hardware Out 32 on the same track, or use
+Bus Send 36 set to **INPUT = CHAIN 36** and **CH** to the calibration width
+when another track handles output. Array Calibrate 64 is not supported by the
+current hardware-out device.
+
+Matrix Upmix 64 and Output Crossover 64 use a **32-input/32-output Live
+profile** of their unchanged 64-channel CLAP plugins. Put Bus Receive 36
+before either wrapper; only received slots 1–32 are read. Their outputs
+occupy chain slots 1–32 and can feed Main Hardware Out 32 on the same track,
+or Bus Send 36 set to **INPUT = CHAIN 36, CH = 32** for another track.
+In Matrix Upmix, choose input and output formats with at most 32 channels.
+In Output Crossover, keep **High Channels ≤ 32** and
+**Sub Offset + Sub Count − 1 ≤ 32**; any subwoofer slot above 32 is not
+available in Live. The plugin editors still offer 64-channel formats, but
+those channels cannot pass through these wrappers.
+
+Processor Fault 8 and Processor Ambi Grain 16 have no audio input; their
+outputs occupy chain slots 1–8 and 1–16 respectively. Follow either with
+Bus Send 36 set to **INPUT = CHAIN 36** and the matching **CH**, or put Main
+Hardware Out 32 after Fault for direct speaker output. Ambi Grain's 16-channel
+ambisonic field must pass through a matching decoder before hardware output.
+Fault receives Live MIDI
+and Tracker MIDI BUS; set its **Performance Mode** to MIDI for note response.
+Its **NOTE** and **OFF** buttons audition and release C4. Ambi Grain has no
+MIDI input; load an ambisonic file and use playback controls in its CLAP
+editor. For Live Sets, use **LINK** or **EMBED** for that file, since
+**PROJECT** does not collect media into an Ableton Project.
+
+Processor No Input Mixer 8 has no audio input and publishes eight chain slots.
+Follow it with Bus Send 36 at **INPUT = CHAIN 36, CH = 8**, or put Main
+Hardware Out 32 directly after it. Start with your monitor level low and leave
+the plugin's limiter on. The face exposes **Out** and **Ceiling**, plus **NEW**
+and **PANIC** buttons. Live MIDI and Tracker MIDI BUS reach its controller
+input; its controller-feedback MIDI output is not forwarded by this wrapper.
+Use MIDI channel 16 for its performance commands and NRPN controls; Live's
+ordinary inter-track MIDI routing can rewrite the channel, so use the
+channel-preserving Tracker MIDI BUS or a suitable direct controller input.
+See the
+[No Input Mixer control guide](https://s3g.github.io/s3g-dsp/no-input-mixer-control.html)
+for the MIDI mapping.
 
 Ambi Transform Depth 16 reads and returns the first 16 received slots.
 Ambi Transform Rot 64, Order Band 64, Processor Ambi Imprint 64, Analyzer

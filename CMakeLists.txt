@@ -30,6 +30,10 @@ if(Python3_Interpreter_FOUND)
     COMMAND "${Python3_EXECUTABLE}" -B
       "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-field-tools.py"
     COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-calibration-processors.py"
+    COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-output-tools.py"
+    COMMAND "${Python3_EXECUTABLE}" -B
       "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-tracker.py"
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
     COMMENT "Generating s3g Max for Live devices")
@@ -49,6 +53,12 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME s3g_m4l_field_tools_validation
       COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_field_tools.py")
+    add_test(NAME s3g_m4l_calibration_processors_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_calibration_processors.py")
+    add_test(NAME s3g_m4l_output_tools_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_output_tools.py")
     add_test(NAME s3g_m4l_tracker_validation
       COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_tracker.py")

@@ -218,8 +218,12 @@ def make_instrument(
     parameters: tuple[P, ...], *, inputs: int = 0,
     play_message: str = "midievent 144 60 100",
     kill_message: str = "killvoices",
+    midi_input: bool = True,
+    action_buttons: bool = True,
+    play_label: str = "PLAY",
+    kill_label: str | None = None,
 ) -> dict[str, object]:
-    """Zero-input MIDI instrument, or Rings' Bus-36-fed capture effect."""
+    """Zero-input instrument, or Rings' Bus-36-fed capture effect."""
     if inputs not in (0, 8) or outputs not in (2, 8, 16, 32):
         raise ValueError(f"unsupported {name} port count")
     wide = outputs > 2
@@ -230,17 +234,6 @@ def make_instrument(
     boxes = base.common_ui(False, base.COMPACT_DEVICE_HEIGHT,
                            allow_plugin_picker=False)
     boxes.extend((
-        base.action_button("obj-play-button", [700, 100, 64, 24],
-                           [84, 10, 64, base.CONTROL_HEIGHT], "PLAY",
-                           annotation="Audition the loaded sound or start its transport."),
-        base.action_button("obj-kill-button", [700, 155, 64, 24],
-                           [156, 10, 64, base.CONTROL_HEIGHT],
-                           "STOP" if inputs else "KILL",
-                           annotation="Stop or reset the current sound."),
-        base.box("obj-play-message", "message", [800, 100, 210, 22],
-                 text=play_message),
-        base.box("obj-kill-message", "message", [800, 155, 210, 22],
-                 text=kill_message),
         clap,
         base.new_object("obj-plugout", "plugout~ " + " ".join(
             str(channel) for channel in range(1, (38 if wide else 2) + 1)),
@@ -250,6 +243,20 @@ def make_instrument(
         base.new_object("obj-device", "s3g.live.thisdevice", 1550, 100,
                         125, 1, 1),
     ))
+    if action_buttons:
+        boxes.extend((
+            base.action_button("obj-play-button", [700, 100, 64, 24],
+                               [84, 10, 64, base.CONTROL_HEIGHT], play_label,
+                               annotation="Audition the sound or start its transport."),
+            base.action_button("obj-kill-button", [700, 155, 64, 24],
+                               [156, 10, 64, base.CONTROL_HEIGHT],
+                               kill_label or ("STOP" if inputs else "KILL"),
+                               annotation="Stop or reset the current sound."),
+            base.box("obj-play-message", "message", [800, 100, 210, 22],
+                     text=play_message),
+            base.box("obj-kill-message", "message", [800, 155, 210, 22],
+                     text=kill_message),
+        ))
     if inputs:
         boxes.append(base.new_object(
             "obj-plugin", "plugin~ " + " ".join(str(channel)
@@ -264,15 +271,18 @@ def make_instrument(
     parameter_boxes, parameter_lines = base.fixed_parameter_runtime(
         parameters, (),
     )
-    midi_boxes, midi_lines = base.midi_input_bridge()
+    midi_boxes, midi_lines = base.midi_input_bridge() if midi_input else ([], [])
     boxes.extend((*runtime_boxes, *parameter_boxes, *midi_boxes))
     lines = [
-        base.line("obj-play-button", 0, "obj-play-message", 0),
-        base.line("obj-play-message", 0, "obj-clap", 0),
-        base.line("obj-kill-button", 0, "obj-kill-message", 0),
-        base.line("obj-kill-message", 0, "obj-clap", 0),
         *runtime_lines, *parameter_lines, *midi_lines,
     ]
+    if action_buttons:
+        lines.extend((
+            base.line("obj-play-button", 0, "obj-play-message", 0),
+            base.line("obj-play-message", 0, "obj-clap", 0),
+            base.line("obj-kill-button", 0, "obj-kill-message", 0),
+            base.line("obj-kill-message", 0, "obj-clap", 0),
+        ))
     if inputs:
         lines.extend(base.line("obj-plugin", channel + 2, "obj-clap", channel)
                      for channel in range(inputs))
@@ -286,7 +296,8 @@ def make_instrument(
         lines.extend(base.line("obj-clap", channel, "obj-plugout", channel)
                      for channel in range(2))
     detail = (f"Takes {inputs} capture channels from a preceding Bus Receive 36. "
-              if inputs else "Receives Live MIDI without an audio input. ")
+              if inputs else ("Receives Live MIDI without an audio input. "
+                              if midi_input else "Generates audio without Live audio or MIDI input. "))
     detail += (f"Publishes {outputs} chain slots; follow with Bus Send 36 "
                f"(INPUT=CHAIN 36, CH={outputs})." if wide else
                "Returns ordinary Live stereo audio.")
