@@ -128,9 +128,9 @@ bool verifyDiscoveryRules()
 
 int runSmoke(int argc, char** argv)
 {
-    if (argc < 2 || argc > 3) {
+    if (argc < 2 || argc > 4) {
         std::cerr << "usage: s3g_clap_host_smoke /path/to/plugin.clap "
-                     "[plugin-name]\n";
+                     "[bundle-name] [plugin-id]\n";
         return 2;
     }
 
@@ -156,16 +156,23 @@ int runSmoke(int argc, char** argv)
         return true;
     };
     if (!verifyResolution(std::filesystem::path(argv[1]).stem().string())
-        || (argc == 3 && !verifyResolution(argv[2])))
+        || (argc >= 3 && !verifyResolution(argv[2])))
         return 1;
 
+    const std::string requestedId = argc == 4 ? argv[3] : "";
     s3g::max_host::ClapEngine engine;
     std::string error;
-    if (!engine.open(argv[1], {}, error)) {
+    if (!engine.open(argv[1], requestedId, error)) {
         std::cerr << "open failed: " << error << '\n';
         return 1;
     }
-    if (engine.outputChannels() == 0) {
+    if (!requestedId.empty() && engine.pluginId() != requestedId) {
+        std::cerr << "requested CLAP ID was not selected\n";
+        return 1;
+    }
+    const bool midiOnlyTracker = engine.pluginId()
+        == "org.s3g.s3g-dsp.tracker";
+    if (engine.outputChannels() == 0 && !midiOnlyTracker) {
         std::cerr << "unexpected channel topology: "
                   << engine.inputChannels() << " in, "
                   << engine.outputChannels() << " out\n";
@@ -179,7 +186,7 @@ int runSmoke(int argc, char** argv)
     // A CLAP entry is initialized once per loaded module, not once per Max
     // object. Keep a second instance alive to exercise the shared-module path.
     s3g::max_host::ClapEngine secondInstance;
-    if (!secondInstance.open(argv[1], {}, error)
+    if (!secondInstance.open(argv[1], requestedId, error)
         || !secondInstance.activate(48000.0, kTestFrames, error)) {
         std::cerr << "second instance failed: " << error << '\n';
         return 1;
@@ -191,6 +198,10 @@ int runSmoke(int argc, char** argv)
             engine.pluginHandle()->get_extension(
                 engine.pluginHandle(), CLAP_EXT_GUI))
         : nullptr;
+    if (!requestedId.empty() && !gui) {
+        std::cerr << "requested CLAP has no editor\n";
+        return 1;
+    }
     if (gui) {
         S3GClapEditor* editor = s3gCreateClapEditor(engine.pluginHandle(),
             "s3g.clap~ GUI smoke", error);
@@ -318,6 +329,11 @@ int runSmoke(int argc, char** argv)
         narrowOutputPointers.push_back(channel.data());
     const uint32_t visibleInputs = std::min<uint32_t>(
         3, engine.inputChannels());
+    if (midiOnlyTracker && !engine.enqueueMidiAt(
+            0u, 17u, 0x91u, 60u, 100u)) {
+        std::cerr << "timed Tracker MIDI input enqueue failed\n";
+        return 1;
+    }
     if (!engine.process(inputPointers.data(), visibleInputs,
             narrowOutputPointers.data(), visibleOutputs, kTestFrames)) {
         std::cerr << "narrow visible-channel processing failed\n";
@@ -358,7 +374,7 @@ int runSmoke(int argc, char** argv)
     // drained. Reopen it here to verify process-lifetime module retention.
     secondInstance.close();
     engine.close();
-    if (!engine.open(argv[1], {}, error)) {
+    if (!engine.open(argv[1], requestedId, error)) {
         std::cerr << "reopen after final close failed: " << error << '\n';
         return 1;
     }

@@ -1271,6 +1271,97 @@
           "numoutlets": 0,
           "outlettype": []
         }
+      },
+      {
+        "box": {
+          "id": "obj-ambi-order-state",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1280.0,
+            400.0,
+            40.0,
+            22.0
+          ],
+          "text": "i 0",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            "int"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-ambi-order-restored",
+          "maxclass": "message",
+          "patching_rect": [
+            1220.0,
+            400.0,
+            30.0,
+            22.0
+          ],
+          "text": "1",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-ambi-order-loaded-delay",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1280.0,
+            435.0,
+            62.0,
+            22.0
+          ],
+          "text": "delay 50",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            "bang"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-ambi-order-new",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1280.0,
+            470.0,
+            45.0,
+            22.0
+          ],
+          "text": "sel 0",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "bang",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-ambi-order-default",
+          "maxclass": "message",
+          "patching_rect": [
+            1280.0,
+            505.0,
+            105.0,
+            22.0
+          ],
+          "text": "paramid 1 5",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
       }
     ],
     "lines": [
@@ -2962,6 +3053,90 @@
           ],
           "destination": [
             "obj-next-send",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-state-valid",
+            0
+          ],
+          "destination": [
+            "obj-ambi-order-restored",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-ambi-order-restored",
+            0
+          ],
+          "destination": [
+            "obj-ambi-order-state",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-route-status",
+            2
+          ],
+          "destination": [
+            "obj-ambi-order-loaded-delay",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-ambi-order-loaded-delay",
+            0
+          ],
+          "destination": [
+            "obj-ambi-order-state",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-ambi-order-state",
+            0
+          ],
+          "destination": [
+            "obj-ambi-order-new",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-ambi-order-new",
+            0
+          ],
+          "destination": [
+            "obj-ambi-order-default",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-ambi-order-default",
+            0
+          ],
+          "destination": [
+            "obj-clap",
             0
           ]
         }

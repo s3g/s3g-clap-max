@@ -25,6 +25,12 @@ if(Python3_Interpreter_FOUND)
       "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-ambi36.py"
     COMMAND "${Python3_EXECUTABLE}" -B
       "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-extra-effects.py"
+    COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-next-batch.py"
+    COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-field-tools.py"
+    COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-tracker.py"
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
     COMMENT "Generating s3g Max for Live devices")
   if(BUILD_TESTING)
@@ -37,6 +43,15 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME s3g_m4l_extra_effects_validation
       COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_extra_effects.py")
+    add_test(NAME s3g_m4l_next_batch_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_next_batch.py")
+    add_test(NAME s3g_m4l_field_tools_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_field_tools.py")
+    add_test(NAME s3g_m4l_tracker_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_tracker.py")
   endif()
 endif()
 
@@ -124,6 +139,24 @@ if(BUILD_TESTING)
     target_link_libraries(s3g_clap_host_smoke PRIVATE user32)
   elseif(UNIX)
     target_link_libraries(s3g_clap_host_smoke PRIVATE dl)
+  endif()
+
+  add_executable(s3g_clap_host_benchmark
+    tests/s3g_clap_host_benchmark.cpp
+    host/s3g_clap_engine.cpp
+    host/s3g_clap_module.cpp
+    host/s3g_clap_plugin_host.cpp)
+  target_compile_features(s3g_clap_host_benchmark PRIVATE cxx_std_17)
+  target_include_directories(s3g_clap_host_benchmark PRIVATE
+    "${S3G_CLAP_INCLUDE_DIR}"
+    host)
+  if(APPLE)
+    target_link_libraries(s3g_clap_host_benchmark PRIVATE
+      "-framework CoreFoundation")
+  elseif(WIN32)
+    target_link_libraries(s3g_clap_host_benchmark PRIVATE user32)
+  elseif(UNIX)
+    target_link_libraries(s3g_clap_host_benchmark PRIVATE dl)
   endif()
 
   set(S3G_CLAP_MAX_TEST_PLUGIN "" CACHE PATH

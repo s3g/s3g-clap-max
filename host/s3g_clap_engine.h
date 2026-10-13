@@ -31,6 +31,7 @@ struct ClapOutputEvent {
     clap_id parameterId = CLAP_INVALID_ID;
     double value = 0.0;
     uint16_t port = 0;
+    uint32_t sampleOffset = 0;
     std::array<uint8_t, 3> midi {};
 };
 
@@ -75,6 +76,8 @@ public:
     bool enqueueParameterById(clap_id id, double value);
     bool enqueueMidi(uint16_t port, uint8_t status, uint8_t data1,
         uint8_t data2);
+    bool enqueueMidiAt(uint16_t port, uint32_t sampleOffset,
+        uint8_t status, uint8_t data1, uint8_t data2);
 
     bool parameterValue(uint32_t oneBasedIndex, double& value,
         std::string& display) const;
@@ -92,6 +95,7 @@ public:
     bool isActive() const { return plugin_.isActive(); }
     uint32_t inputChannels() const { return inputChannels_; }
     uint32_t outputChannels() const { return outputChannels_; }
+    bool usesDoublePrecision() const { return useDoublePrecision_; }
     const std::string& pluginId() const { return pluginId_; }
     const std::string& pluginName() const { return pluginName_; }
     const std::string& path() const { return module_.path(); }
@@ -134,6 +138,7 @@ private:
         clap_id parameterId = CLAP_INVALID_ID;
         double value = 0.0;
         uint16_t port = 0;
+        uint32_t sampleOffset = 0;
         std::array<uint8_t, 3> midi {};
     };
 
@@ -191,8 +196,11 @@ private:
     std::vector<std::vector<float*>> outputFloatPointers_;
     std::vector<std::vector<float>> inputFloatStorage_;
     std::vector<std::vector<float>> outputFloatStorage_;
-    std::vector<std::vector<double>> inputDoubleStorage_;
     std::vector<std::vector<double>> outputDoubleStorage_;
+    std::vector<float> inputFloatSilence_;
+    std::vector<double> inputDoubleSilence_;
+
+    std::array<ProcessEvent, kMaximumEvents> processEvents_ {};
 
     mutable std::mutex pendingMutex_;
     std::vector<PendingEvent> pendingEvents_;

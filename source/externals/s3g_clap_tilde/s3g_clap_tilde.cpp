@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -59,11 +60,33 @@ struct Implementation {
     std::recursive_mutex engineMutex;
     s3g::max_host::ClapEngine engine;
     std::atomic<bool> processError { false };
+    std::atomic<uint64_t> audioLockMisses { 0 };
+    std::atomic<const char*> mainLockReason { nullptr };
+    std::atomic<const char*> lastAudioLockMissReason { nullptr };
+    std::chrono::steady_clock::time_point lastAudioLockWarning {};
     std::atomic<bool> voiceResetPending { false };
     std::atomic<bool> latencyReportPending { false };
 #if defined(__APPLE__) || defined(_WIN32)
     S3GClapEditor* editor = nullptr;
 #endif
+};
+
+struct TrackedEngineLock {
+    TrackedEngineLock(Implementation* implementation, const char* reason)
+        : implementation(implementation), lock(implementation->engineMutex)
+    {
+        implementation->mainLockReason.store(reason,
+            std::memory_order_release);
+    }
+
+    ~TrackedEngineLock()
+    {
+        implementation->mainLockReason.store(nullptr,
+            std::memory_order_release);
+    }
+
+    Implementation* implementation;
+    std::lock_guard<std::recursive_mutex> lock;
 };
 
 t_class* gClass = nullptr;
@@ -188,58 +211,87 @@ void deferredTick(MaxClap* object)
 {
     auto* implementation = object ? object->implementation : nullptr;
     if (!implementation) return;
-    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
-    auto& engine = implementation->engine;
-
-    engine.serviceMainThreadCallback();
+    bool editorClosed = false;
+    bool restarted = false;
+    bool restartFailed = false;
+    bool latencyChanged = false;
+    uint32_t latencySamples = 0;
+    bool stateDirty = false;
+    std::string restartError;
+    std::vector<s3g::max_host::ClapOutputEvent> outputEvents;
+    const bool needsEngineService = implementation->engine.hasCallbackRequest()
+        || implementation->engine.hasRestartRequest()
+        || implementation->engine.hasGuiRequest()
+        || implementation->engine.hasLatencyChanged()
+        || implementation->latencyReportPending.load(
+            std::memory_order_acquire);
+    if (needsEngineService) {
+        // Never send Max outlet/modified notifications while owning the audio
+        // engine lock. Ordinary editor parameter output needs no engine lock:
+        // its queue and state-dirty flag are atomic across audio/main threads.
+        TrackedEngineLock lock(implementation, "deferred service");
+        auto& engine = implementation->engine;
+        engine.serviceMainThreadCallback();
 #if defined(__APPLE__) || defined(_WIN32)
-    uint32_t editorWidth = 0;
-    uint32_t editorHeight = 0;
-    if (engine.takeGuiResizeRequest(editorWidth, editorHeight)
-        && implementation->editor)
-        s3gResizeClapEditor(implementation->editor, editorWidth,
-            editorHeight);
-    if (engine.takeGuiShowRequest() && implementation->editor)
-        s3gShowClapEditor(implementation->editor);
-    if (engine.takeGuiHideRequest() && implementation->editor)
-        s3gHideClapEditor(implementation->editor);
-    bool guiWasDestroyed = false;
-    if (engine.takeGuiClosed(guiWasDestroyed) && implementation->editor) {
-        s3gClapEditorPluginClosed(implementation->editor, guiWasDestroyed);
-        if (guiWasDestroyed) {
-            s3gDestroyClapEditor(implementation->editor);
-            implementation->editor = nullptr;
+        uint32_t editorWidth = 0;
+        uint32_t editorHeight = 0;
+        if (engine.takeGuiResizeRequest(editorWidth, editorHeight)
+            && implementation->editor)
+            s3gResizeClapEditor(implementation->editor, editorWidth,
+                editorHeight);
+        if (engine.takeGuiShowRequest() && implementation->editor)
+            s3gShowClapEditor(implementation->editor);
+        if (engine.takeGuiHideRequest() && implementation->editor)
+            s3gHideClapEditor(implementation->editor);
+        bool guiWasDestroyed = false;
+        if (engine.takeGuiClosed(guiWasDestroyed) && implementation->editor) {
+            s3gClapEditorPluginClosed(implementation->editor, guiWasDestroyed);
+            if (guiWasDestroyed) {
+                s3gDestroyClapEditor(implementation->editor);
+                implementation->editor = nullptr;
+            }
+            editorClosed = true;
         }
+#endif
+        if (engine.takeRestartRequest()) {
+            engine.deactivate();
+            if (implementation->sampleRate > 0.0
+                && implementation->vectorSize > 0
+                && !engine.activate(implementation->sampleRate,
+                    implementation->vectorSize, restartError)) {
+                restartFailed = true;
+            } else {
+                restarted = true;
+                implementation->latencyReportPending.store(true,
+                    std::memory_order_release);
+            }
+        }
+        latencyChanged = engine.takeLatencyChanged()
+            || implementation->latencyReportPending.exchange(false,
+                std::memory_order_acq_rel);
+        if (latencyChanged) latencySamples = engine.latencySamples();
+    }
+    stateDirty = implementation->engine.takeStateDirty();
+    s3g::max_host::ClapOutputEvent output;
+    while (implementation->engine.popOutputEvent(output))
+        outputEvents.push_back(output);
+
+    if (editorClosed) {
         t_atom atom;
         atom_setlong(&atom, 0);
         emit(object, "editor", 1, &atom);
     }
-#endif
-    if (engine.takeRestartRequest()) {
-        std::string error;
-        engine.deactivate();
-        if (implementation->sampleRate > 0.0 && implementation->vectorSize > 0
-            && !engine.activate(implementation->sampleRate,
-                implementation->vectorSize, error)) {
-            emitError(object, error);
-        } else {
-            emit(object, "restarted", 0, nullptr);
-            implementation->latencyReportPending.store(true,
-                std::memory_order_release);
-        }
+    if (restartFailed) emitError(object, restartError);
+    else if (restarted) emit(object, "restarted", 0, nullptr);
+    if (latencyChanged) {
+        t_atom atom;
+        atom_setlong(&atom, static_cast<t_atom_long>(latencySamples));
+        emit(object, "latency", 1, &atom);
     }
+    if (stateDirty) emit(object, "statechanged", 0, nullptr);
 
-    if (engine.takeLatencyChanged()
-        || implementation->latencyReportPending.exchange(false,
-            std::memory_order_acq_rel))
-        emitLatency(object);
-    if (engine.takeStateDirty()) {
-        notifyValueChanged(object);
-        emit(object, "statechanged", 0, nullptr);
-    }
-
-    s3g::max_host::ClapOutputEvent output;
-    while (engine.popOutputEvent(output)) {
+    bool parameterChanged = false;
+    for (const auto& output : outputEvents) {
         if (output.type
             == s3g::max_host::ClapOutputEvent::Type::Parameter) {
             t_atom atoms[2];
@@ -247,14 +299,41 @@ void deferredTick(MaxClap* object)
                 static_cast<t_atom_long>(output.parameterId));
             atom_setfloat(atoms + 1, output.value);
             emit(object, "paramchanged", 2, atoms);
-            notifyValueChanged(object);
+            parameterChanged = true;
         } else {
+            t_atom timedAtoms[5];
+            atom_setlong(timedAtoms, output.port);
+            atom_setlong(timedAtoms + 1, output.sampleOffset);
+            atom_setlong(timedAtoms + 2, output.midi[0]);
+            atom_setlong(timedAtoms + 3, output.midi[1]);
+            atom_setlong(timedAtoms + 4, output.midi[2]);
+            emit(object, "midioutat", 5, timedAtoms);
+            // Keep the original four-atom output for existing Max patches.
             t_atom atoms[4];
             atom_setlong(atoms, output.port);
             atom_setlong(atoms + 1, output.midi[0]);
             atom_setlong(atoms + 2, output.midi[1]);
             atom_setlong(atoms + 3, output.midi[2]);
             emit(object, "midiout", 4, atoms);
+        }
+    }
+    if (stateDirty || parameterChanged) notifyValueChanged(object);
+    const auto missedBlocks = implementation->audioLockMisses.exchange(0,
+        std::memory_order_acq_rel);
+    if (missedBlocks > 0) {
+        const char* reason = implementation->lastAudioLockMissReason.exchange(
+            nullptr, std::memory_order_acq_rel);
+        if (!reason) reason = "unidentified caller";
+        t_atom atom;
+        atom_setlong(&atom, static_cast<t_atom_long>(missedBlocks));
+        emit(object, "audiolockmisses", 1, &atom);
+        const auto now = std::chrono::steady_clock::now();
+        if (now - implementation->lastAudioLockWarning
+            >= std::chrono::seconds(2)) {
+            object_warn(reinterpret_cast<t_object*>(object),
+                "audio engine lock skipped %llu block(s) during %s",
+                static_cast<unsigned long long>(missedBlocks), reason);
+            implementation->lastAudioLockWarning = now;
         }
     }
     if (implementation->processError.exchange(false,
@@ -281,9 +360,15 @@ void perform64(MaxClap* object, t_object*, double** inputs, long inputCount,
     std::unique_lock<std::recursive_mutex> lock(implementation->engineMutex,
         std::try_to_lock);
     if (!lock.owns_lock()) {
+        implementation->audioLockMisses.fetch_add(1,
+            std::memory_order_relaxed);
+        implementation->lastAudioLockMissReason.store(
+            implementation->mainLockReason.load(std::memory_order_acquire),
+            std::memory_order_release);
         for (long channel = 0; channel < outputCount; ++channel)
             if (outputs[channel])
                 std::fill(outputs[channel], outputs[channel] + frames, 0.0);
+        scheduleDeferred(object);
         return;
     }
 
@@ -574,12 +659,15 @@ void setParameter(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     if (!implementation || argc < 2) return;
     const t_atom_long index = atom_getlong(argv);
     const double value = atom_getfloat(argv + 1);
-    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
-    const bool queued = index >= 1
-        && static_cast<uint64_t>(index)
-            <= std::numeric_limits<uint32_t>::max()
-        && implementation->engine.enqueueParameter(
-            static_cast<uint32_t>(index), value);
+    bool queued = false;
+    {
+        TrackedEngineLock lock(implementation, "parameter queue");
+        queued = index >= 1
+            && static_cast<uint64_t>(index)
+                <= std::numeric_limits<uint32_t>::max()
+            && implementation->engine.enqueueParameter(
+                static_cast<uint32_t>(index), value);
+    }
     if (!queued)
         emitError(object, "invalid, read-only, or full CLAP parameter event");
     else
@@ -597,9 +685,13 @@ void setParameterById(MaxClap* object, t_symbol*, long argc, t_atom* argv)
         emitError(object, "CLAP parameter id must be non-negative");
         return;
     }
-    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
-    if (!implementation->engine.enqueueParameterById(
-            static_cast<clap_id>(id), value))
+    bool queued = false;
+    {
+        TrackedEngineLock lock(implementation, "parameter queue");
+        queued = implementation->engine.enqueueParameterById(
+            static_cast<clap_id>(id), value);
+    }
+    if (!queued)
         emitError(object, "invalid, read-only, or full CLAP parameter event");
     else
         notifyValueChanged(object);
@@ -617,7 +709,7 @@ void automateParameterById(MaxClap* object, t_symbol*, long argc,
         emitError(object, "CLAP parameter id must be non-negative");
         return;
     }
-    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
+    TrackedEngineLock lock(implementation, "Live automation queue");
     if (!implementation->engine.enqueueParameterById(
             static_cast<clap_id>(id), value))
         emitError(object, "invalid, read-only, or full CLAP parameter event");
@@ -663,6 +755,25 @@ void midiEvent(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     };
     std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
     if (!implementation->engine.enqueueMidi(port, byte(0), byte(1), byte(2)))
+        emitError(object, "CLAP event queue is full");
+}
+
+void midiEventAt(MaxClap* object, t_symbol*, long argc, t_atom* argv)
+{
+    auto* implementation = object ? object->implementation : nullptr;
+    if (!implementation || argc < 5) return;
+    const auto port = static_cast<uint16_t>(std::clamp<t_atom_long>(
+        atom_getlong(argv), 0, 65535));
+    const auto sampleOffset = static_cast<uint32_t>(
+        std::clamp<t_atom_long>(atom_getlong(argv + 1), 0,
+            std::numeric_limits<uint32_t>::max()));
+    const auto byte = [&](long index) {
+        return static_cast<uint8_t>(std::clamp<t_atom_long>(
+            atom_getlong(argv + index), 0, 255));
+    };
+    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
+    if (!implementation->engine.enqueueMidiAt(port, sampleOffset,
+        byte(2), byte(3), byte(4)))
         emitError(object, "CLAP event queue is full");
 }
 
@@ -729,8 +840,7 @@ t_max_err getValueOf(MaxClap* object, long* argc, t_atom** argv)
     std::string path;
     std::string pluginId;
     {
-        std::lock_guard<std::recursive_mutex> lock(
-            implementation->engineMutex);
+        TrackedEngineLock lock(implementation, "state save");
         if (!implementation->engine.isOpen()) {
             *argc = 0;
             return MAX_ERR_NONE;
@@ -943,7 +1053,7 @@ void transportMessage(MaxClap* object, t_symbol*, long argc, t_atom* argv)
     if (argc > 7) transport.loopActive = atom_getlong(argv + 7) != 0;
     if (argc > 8) transport.loopStartBeats = atom_getfloat(argv + 8);
     if (argc > 9) transport.loopEndBeats = atom_getfloat(argv + 9);
-    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
+    TrackedEngineLock lock(implementation, "transport update");
     implementation->engine.setTransport(transport);
 }
 
@@ -952,7 +1062,7 @@ void transportSyncMessage(MaxClap* object, t_symbol*, long argc,
 {
     auto* implementation = object ? object->implementation : nullptr;
     if (!implementation || argc < 7 || !argv) return;
-    std::lock_guard<std::recursive_mutex> lock(implementation->engineMutex);
+    TrackedEngineLock lock(implementation, "transport update");
     const double sampleRate = implementation->sampleRate;
     const double samplesPerBeat = atom_getfloat(argv + 3);
     const t_atom_long flags = atom_getlong(argv + 6);
@@ -1156,6 +1266,8 @@ extern "C" void ext_main(void*)
         A_LONG, 0);
     class_addmethod(klass, reinterpret_cast<method>(midiEvent), "midievent",
         A_GIMME, 0);
+    class_addmethod(klass, reinterpret_cast<method>(midiEventAt),
+        "midieventat", A_GIMME, 0);
     class_addmethod(klass, reinterpret_cast<method>(killVoices), "killvoices",
         0);
     class_addmethod(klass, reinterpret_cast<method>(stateWrite), "statewrite",

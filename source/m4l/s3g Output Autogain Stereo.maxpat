@@ -407,7 +407,9 @@
           },
           "showname": 0,
           "shownumber": 1,
-          "varname": "autogain_input_gain"
+          "varname": "autogain_input_gain",
+          "orientation": 0,
+          "thickness": 2
         }
       },
       {

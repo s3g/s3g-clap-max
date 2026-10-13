@@ -45,10 +45,9 @@ def validate_debug_layout(name: str, patch: dict[str, object]) -> None:
         flow = ("obj-midi-in", "obj-midi-parse", "obj-clap", "obj-plugout")
     elif name == "s3g Bus Send 36":
         flow = ("obj-plugin", "obj-route-matrix", "obj-bus-gain", "obj-plugout")
-    elif name == "s3g Ambi Decoder Speaker Main":
+    elif name == "s3g Ambi Decoder Speaker":
         flow = (
-            "obj-plugin", "obj-ambi-input-gain", "obj-clap",
-            "obj-mono-matrix", "obj-plugout",
+            "obj-plugin", "obj-ambi-input-gain", "obj-clap", "obj-plugout",
         )
     else:
         flow = ("obj-plugin", "obj-monitor-left", "obj-plugout")
@@ -68,7 +67,7 @@ def validate(name: str) -> None:
     if data[32:] != (source_path.read_bytes() + b"\0") or len(data) != 32 + length:
         raise ValueError(f"{name}: AMXD does not match Max source")
     patch = document["patcher"]
-    if name in {"s3g Ambi Encoder Stochastic", "s3g Ambi Decoder Speaker Main"}:
+    if name in {"s3g Ambi Encoder Stochastic", "s3g Ambi Decoder Speaker"}:
         validate_debug_layout(name, patch)
     boxes = {entry["box"]["id"]: entry["box"] for entry in patch["boxes"]}
     if len(boxes) != len(patch["boxes"]):
@@ -91,12 +90,18 @@ def validate(name: str) -> None:
         raise ValueError(f"{name}: third order is still forced")
     if boxes["obj-bus-insert"]["text"] != "s3g.bus.insert":
         raise ValueError(f"{name}: no same-track insert discovery")
+    multichannel_decoder = name in {
+        "s3g Ambi Decoder Speaker", "s3g Ambi Decoder Object",
+        "s3g Ambi Decoder Adaptive", "s3g Ambi Decoder Sub",
+    }
     insert_source = (
-        "obj-device-startup-trigger"
-        if name in {"s3g Ambi Encoder Stochastic",
-                    "s3g Ambi Decoder Speaker Main"} else "obj-device"
+        "obj-chain-init" if multichannel_decoder else
+        "obj-device-startup-trigger" if name == "s3g Ambi Encoder Stochastic"
+        else "obj-device"
     )
-    insert_outlet = 1 if insert_source == "obj-device-startup-trigger" else 0
+    insert_outlet = 1 if insert_source in {
+        "obj-device-startup-trigger", "obj-chain-init",
+    } else 0
     if ((insert_source, insert_outlet), ("obj-bus-insert", 0)) not in lines:
         raise ValueError(f"{name}: insert discovery not initialized")
     if "3OA" in patch["digest"] or "master bus" in patch["digest"]:
@@ -112,9 +117,56 @@ def validate(name: str) -> None:
     if (("obj-clap", clap_outputs), ("obj-route-status", 0)) not in lines:
         raise ValueError(f"{name}: CLAP status outlet is misplaced")
 
+    if multichannel_decoder:
+        if (boxes["obj-plugin"]["numoutlets"] != 38
+                or boxes["obj-ambi-input-gain"]["channels"] != 36
+                or boxes["obj-rec-writer"]["text"] != "sfrecord~ 36"
+                or boxes["obj-plugout"]["numinlets"] != 38
+                or clap_inputs != 36 or clap_outputs != 32
+                or boxes["obj-next-send"]["text"] !=
+                "s3g.bus.send s3g-chain-next"):
+            raise ValueError(f"{name}: multichannel decoder topology is incomplete")
+        if any(object_id.startswith(("obj-mono-", "obj-hardware-"))
+               for object_id in boxes):
+            raise ValueError(f"{name}: hardware controls remain in processor")
+        ordered = {
+            (("obj-device", 0), ("obj-chain-init", 0)),
+            (("obj-chain-init", 2), ("obj-state-restore-init", 0)),
+            (("obj-chain-init", 1), ("obj-bus-insert", 0)),
+            (("obj-chain-init", 0), ("obj-next-order", 0)),
+            (("obj-next-order", 2), ("obj-next-store", 1)),
+            (("obj-next-order", 1), ("obj-next-trigger", 0)),
+            (("obj-next-order", 0), ("obj-next-delay", 0)),
+            (("obj-next-delay", 0), ("obj-next-store", 0)),
+            (("obj-next-store", 0), ("obj-next-trigger", 0)),
+            (("obj-next-trigger", 1), ("obj-next-mode", 0)),
+            (("obj-next-mode", 0), ("obj-next-send", 1)),
+            (("obj-next-trigger", 0), ("obj-next-send", 0)),
+        }
+        if (not ordered.issubset(lines)
+                or boxes["obj-chain-init"]["text"] != "t l l l"
+                or boxes["obj-next-delay"]["text"] != "delay 300"
+                or boxes["obj-next-mode"]["text"] != "1"):
+            raise ValueError(f"{name}: automatic next-chain startup is broken")
+        for channel in range(36):
+            required = {
+                (("obj-plugin", channel + 2), ("obj-ambi-input-gain", channel)),
+                (("obj-ambi-input-gain", channel), ("obj-clap", channel)),
+                (("obj-ambi-input-gain", channel), ("obj-rec-writer", channel)),
+            }
+            if not required.issubset(lines):
+                raise ValueError(f"{name}: input channel {channel + 1} is disconnected")
+        for channel in range(32):
+            if (("obj-clap", channel), ("obj-plugout", channel + 2)) not in lines:
+                raise ValueError(f"{name}: chain channel {channel + 1} is disconnected")
+        if any((("obj-plugin", channel), ("obj-plugout", channel)) in lines
+               for channel in (0, 1)):
+            raise ValueError(f"{name}: Live stereo bypasses decoder")
+        return
+
     if is_decoder:
         if "obj-next-send" in boxes:
-            raise ValueError(f"{name}: hardware endpoint routes to NEXT")
+            raise ValueError(f"{name}: stereo decoder routes to NEXT")
         if (boxes["obj-plugin"]["numoutlets"] != 38
                 or boxes["obj-ambi-input-gain"]["channels"] != 36
                 or boxes["obj-rec-writer"]["text"] != "sfrecord~ 36"
@@ -128,86 +180,6 @@ def validate(name: str) -> None:
             }
             if not required.issubset(lines):
                 raise ValueError(f"{name}: decoder channel {channel + 1} is disconnected")
-        if name == "s3g Ambi Decoder Speaker Main":
-            startup_lines = {
-                (("obj-device", 0), ("obj-device-startup-trigger", 0)),
-                (("obj-device-startup-trigger", 3), ("obj-state-restore-init", 0)),
-                (("obj-device-startup-trigger", 2), ("obj-hardware-routing", 0)),
-                (("obj-device-startup-trigger", 1), ("obj-bus-insert", 0)),
-                (("obj-device-startup-trigger", 0), ("obj-device-split", 0)),
-                (("obj-mono-page-one", 0), ("obj-mono-page-fanout", 0)),
-            }
-            startup_lines |= {
-                (("obj-mono-page-fanout", 8 - index), (destination, 0))
-                for index, destination in enumerate(
-                    [f"obj-mono-row-label-{row}-number"
-                     for row in range(8, 0, -1)] + ["obj-mono-page-order"]
-                )
-            }
-            if (not startup_lines.issubset(lines)
-                    or boxes["obj-device-startup-trigger"]["text"] != "t l l l l"
-                    or boxes["obj-mono-page-fanout"]["text"] !=
-                    "t i i i i i i i i i"):
-                raise ValueError(f"{name}: startup/page ordering is not explicit")
-            for channel in range(1, 33):
-                control = f"obj-mono-output-{channel}"
-                store_input = f"{control}-store-input"
-                ordered_route = {
-                    ((control, 0), (store_input, 0)),
-                    ((store_input, 2), (f"{control}-store", 1)),
-                    ((store_input, 1), ("obj-mono-redraw", 0)),
-                    ((store_input, 0), (f"{control}-trigger", 0)),
-                }
-                if (boxes[store_input]["text"] != "t i b i"
-                        or not ordered_route.issubset(lines)):
-                    raise ValueError(f"{name}: mono route {channel} has implicit order")
-            gain = boxes["obj-ambi-input-gain"]
-            gain_x, gain_y, gain_width, gain_height = gain["presentation_rect"]
-            grid_x, grid_y, grid_width, grid_height = boxes["obj-mono-grid"]["presentation_rect"]
-            device_width = patch["devicewidth"]
-            if (gain.get("ignoreclick") != 0
-                    or gain.get("orientation") != 0
-                    or gain.get("thickness") != 2
-                    or gain_x != boxes["obj-gui-button"]["presentation_rect"][0]
-                    or gain_height != 120
-                    or (grid_x, grid_y, grid_width, grid_height)
-                    != (240.0, 50.0, 448.0, 112.0)
-                    or gain_x + gain_width >= grid_x
-                    or grid_x + grid_width > device_width
-                    or device_width != 700.0
-                    or patch["openrect"] != [0.0, 0.0, 700.0, 169.0]):
-                raise ValueError(f"{name}: vertical input gain or output grid is clipped")
-            top_row = (
-                "obj-gui-button", "obj-hardware-button",
-                "obj-rec-file-button", "obj-rec-toggle", "obj-rec-time",
-                "obj-mono-page-menu",
-            )
-            if any(boxes[control]["presentation_rect"][1] != 10.0
-                   for control in top_row):
-                raise ValueError(f"{name}: transport controls left the top row")
-            foreground = [
-                box for box in boxes.values()
-                if box.get("presentation") and box["maxclass"] != "panel"
-            ]
-            for index, first in enumerate(foreground):
-                x, y, width, height = first["presentation_rect"]
-                if x < 0 or y < 0 or x + width > device_width or y + height > 169:
-                    raise ValueError(f"{name}: {first['id']} exceeds Live device bounds")
-                for second in foreground[index + 1:]:
-                    other_x, other_y, other_width, other_height = second["presentation_rect"]
-                    if (min(x + width, other_x + other_width) > max(x, other_x)
-                            and min(y + height, other_y + other_height) > max(y, other_y)):
-                        raise ValueError(
-                            f"{name}: presentation overlap {first['id']} / {second['id']}"
-                        )
-            hardware_popup = boxes["obj-hardware-routing"]["patcher"]
-            popup_boxes = {entry["box"]["id"]: entry["box"]
-                           for entry in hardware_popup["boxes"]}
-            if (hardware_popup["locked_bgcolor"] != [0.82, 0.82, 0.82, 1.0]
-                    or any(popup_boxes[f"obj-output-label-{pair}"]["textcolor"]
-                           != [0.20, 0.20, 0.20, 1.0]
-                           for pair in range(1, 17))):
-                raise ValueError(f"{name}: hardware popup labels lack contrast")
     else:
         if (boxes["obj-plugout"]["numinlets"] != 38
                 or boxes["obj-next-send"]["text"] != "s3g.bus.send s3g-chain-next"
@@ -250,6 +222,26 @@ def validate(name: str) -> None:
             for channel in range(36):
                 if (("obj-plugin", channel + 2), ("obj-clap", channel)) not in lines:
                     raise ValueError(f"{name}: effect input {channel + 1} is disconnected")
+            order_default = boxes.get("obj-ambi-order-default", {})
+            new_instance_order = {
+                (("obj-state-valid", 0), ("obj-ambi-order-restored", 0)),
+                (("obj-ambi-order-restored", 0), ("obj-ambi-order-state", 1)),
+                (("obj-route-status", 2), ("obj-ambi-order-loaded-delay", 0)),
+                (("obj-ambi-order-loaded-delay", 0), ("obj-ambi-order-state", 0)),
+                (("obj-ambi-order-state", 0), ("obj-ambi-order-new", 0)),
+                (("obj-ambi-order-new", 0), ("obj-ambi-order-default", 0)),
+                (("obj-ambi-order-default", 0), ("obj-clap", 0)),
+            }
+            if (boxes.get("obj-ambi-order-state", {}).get("text") != "i 0"
+                    or boxes.get("obj-ambi-order-loaded-delay", {}).get("text")
+                    != "delay 50"
+                    or boxes.get("obj-ambi-order-new", {}).get("text") != "sel 0"
+                    or not re.fullmatch(
+                        r"paramid \d+ 5", str(order_default.get("text", "")))
+                    or not new_instance_order.issubset(lines)):
+                raise ValueError(
+                    f"{name}: new-only fifth-order default is incomplete"
+                )
         elif is_encoder and "obj-plugin" in boxes and boxes["obj-plugin"]["numoutlets"] == 38:
             for channel in range(clap_inputs):
                 if (("obj-plugin", channel + 2), ("obj-clap", channel)) not in lines:
@@ -257,18 +249,26 @@ def validate(name: str) -> None:
 
 
 def main() -> None:
-    originals = sorted(SOURCE.glob("s3g 3OA *.maxpat"))
-    if len(originals) != 38:
-        raise ValueError(f"expected 38 fixed 3OA wrappers, got {len(originals)}")
-    if any(original.stem.replace("s3g 3OA", "s3g Ambi", 1)
-           in RETIRED_GENERIC_DEVICES for original in originals):
+    # Field-transform inserts have their own width/identity validator; this
+    # legacy-conversion check covers only its 38 encoder/effect/decoder faces.
+    current = sorted(
+        source for source in SOURCE.glob("s3g Ambi *.maxpat")
+        if not source.stem.startswith("s3g Ambi Transform ")
+    )
+    if len(current) != 38:
+        raise ValueError(f"expected 38 current Ambi wrappers, got {len(current)}")
+    if any(source.stem in RETIRED_GENERIC_DEVICES for source in current):
         raise ValueError("retired general-purpose source remains")
     for name in RETIRED_GENERIC_DEVICES:
         for directory, suffix in ((SOURCE, ".maxpat"), (DEVICE, ".amxd")):
             if (directory / f"{name}{suffix}").exists():
                 raise ValueError(f"retired generic device remains: {name}{suffix}")
-    for original in originals:
-        validate(original.stem.replace("s3g 3OA", "s3g Ambi", 1))
+    for directory, suffix in ((SOURCE, ".maxpat"), (DEVICE, ".amxd")):
+        legacy = list(directory.glob(f"s3g 3OA *{suffix}"))
+        if legacy:
+            raise ValueError(f"legacy 3OA devices remain: {legacy}")
+    for source in current:
+        validate(source.stem)
     send = json.loads((SOURCE / "s3g Bus Send 36.maxpat").read_text(encoding="utf-8"))
     send_boxes = {entry["box"]["id"]: entry["box"]
                   for entry in send["patcher"]["boxes"]}

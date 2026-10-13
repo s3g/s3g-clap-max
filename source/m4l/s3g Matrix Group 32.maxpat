@@ -69,8 +69,8 @@
           ],
           "presentation": 1,
           "presentation_rect": [
-            2100,
-            40,
+            0.0,
+            0.0,
             240,
             169.0
           ],

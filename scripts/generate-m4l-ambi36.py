@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-"""Build opt-in Ambi wrappers for the explicit 36-channel Live bus workflow.
+"""Build Ambi wrappers for the explicit 36-channel Live bus workflow.
 
-The existing 3OA devices remain untouched while the new chain is tested in
-Live.  This deliberately reuses their stable CLAP/state/automation controls;
-only the audio topology and obsolete embedded bus controls are changed.
+Conversion templates are built in memory, never installed or packaged as
+legacy 3OA Max for Live devices. Stable CLAP/state/automation controls remain.
 """
 
 from __future__ import annotations
 
 import importlib.util
-import json
 from pathlib import Path
 import re
 import sys
@@ -76,6 +74,13 @@ def convert(name: str, document: dict[str, object]) -> tuple[str, dict[str, obje
     native_sixteen = is_source or (
         is_encoder and " 16\"" in boxes["obj-default-open"]["text"]
     )
+    third_order_topology = [
+        (object_id, int(match.group(1)))
+        for object_id, box in boxes.items()
+        if object_id.startswith("obj-param-topology-")
+        and (match := re.fullmatch(
+            r"paramid (\d+) 3(?:\.0+)?", str(box.get("text", ""))))
+    ]
     new_inputs = (
         BUS_CHANNELS if is_decoder or is_effect else old_inputs
     )
@@ -186,6 +191,62 @@ def convert(name: str, document: dict[str, object]) -> tuple[str, dict[str, obje
             generator.line("obj-next-mode", 0, "obj-next-send", 1),
             generator.line("obj-next-trigger", 0, "obj-next-send", 0),
         ])
+    if is_effect and not native_sixteen:
+        if len(third_order_topology) != 1:
+            raise ValueError(
+                f"{name}: expected one removable third-order topology message"
+            )
+        order_parameter_id = third_order_topology[0][1]
+        # Existing devices must keep the order stored in their opaque CLAP
+        # state. A new 36-channel effect has no valid state, so after CLAP has
+        # loaded we apply the highest complete order carried by 36 channels.
+        patch["boxes"].extend([
+            generator.new_object(
+                "obj-ambi-order-state", "i 0", 1280.0, 400.0,
+                40.0, 2, 1, ["int"],
+            ),
+            generator.box(
+                "obj-ambi-order-restored", "message",
+                [1220.0, 400.0, 30.0, 22.0], text="1",
+            ),
+            generator.new_object(
+                "obj-ambi-order-loaded-delay", "delay 50",
+                1280.0, 435.0, 62.0, 1, 1, ["bang"],
+            ),
+            generator.new_object(
+                "obj-ambi-order-new", "sel 0", 1280.0, 470.0,
+                45.0, 1, 2, ["bang", ""],
+            ),
+            generator.box(
+                "obj-ambi-order-default", "message",
+                [1280.0, 505.0, 105.0, 22.0],
+                text=f"paramid {order_parameter_id} 5",
+            ),
+        ])
+        patch["lines"].extend([
+            generator.line(
+                "obj-state-valid", 0, "obj-ambi-order-restored", 0,
+            ),
+            generator.line(
+                "obj-ambi-order-restored", 0, "obj-ambi-order-state", 1,
+            ),
+            generator.line(
+                "obj-route-status", 2, "obj-ambi-order-loaded-delay", 0,
+            ),
+            generator.line(
+                "obj-ambi-order-loaded-delay", 0,
+                "obj-ambi-order-state", 0,
+            ),
+            generator.line(
+                "obj-ambi-order-state", 0, "obj-ambi-order-new", 0,
+            ),
+            generator.line(
+                "obj-ambi-order-new", 0, "obj-ambi-order-default", 0,
+            ),
+            generator.line(
+                "obj-ambi-order-default", 0, "obj-clap", 0,
+            ),
+        ])
     if new_name == "s3g Ambi Encoder Stochastic":
         # NEXT can be discovered before a later device has finished loading.
         # Replay only the routing ID after the receiving insert is ready;
@@ -243,11 +304,25 @@ def convert(name: str, document: dict[str, object]) -> tuple[str, dict[str, obje
     patch["name"] = new_name
     patch["tags"] = "s3g CLAP Ambisonics explicit 36-channel bus"
     if is_decoder:
-        patch["description"] = (
-            "Takes 36 Ambisonic channels from the preceding s3g Bus Receive 36, "
-            "records the post-gain bed, and decodes to Live stereo or hardware. "
-            "No embedded named bus; maximum bus order is 5OA."
-        )
+        new_name = new_name.removesuffix(" Main")
+        if "obj-mono-matrix" in boxes:
+            generator.chain_output_processor_device(
+                document, new_name,
+                "Takes 36 Ambisonic channels from the preceding s3g Bus "
+                "Receive 36, records the post-gain bed, and decodes up to "
+                "32 channels into the same-track chain. Follow with s3g "
+                "Main Hardware Out 32 or Bus Send 36 (INPUT=CHAIN 36, CH=32) "
+                "for a separate output track. Maximum input bus order is 5OA.",
+            )
+        else:
+            patch["name"] = new_name
+            patch["description"] = (
+                "Takes 36 Ambisonic channels from the preceding s3g Bus "
+                "Receive 36, records the post-gain bed, and decodes to "
+                "Live's normal stereo output. No hardware matrix or hidden "
+                "bus; maximum input bus order is 5OA."
+            )
+            patch["digest"] = patch["description"]
     elif is_encoder:
         patch["description"] = (
             "Encodes to the next device on this track automatically. "
@@ -275,17 +350,15 @@ def main() -> None:
             title="s3g Bus Send 36",
         ),
     )
-    sources = sorted((ROOT / "source/m4l").glob("s3g 3OA *.maxpat"))
-    retired = [path.stem for path in sources
-               if path.stem in RETIRED_GENERIC_DEVICES]
+    templates = generator.ambi_conversion_templates()
+    retired = [name for name, _ in templates
+               if name in RETIRED_GENERIC_DEVICES]
     if retired:
-        raise RuntimeError(f"retired general-purpose sources remain: {retired}")
-    if len(sources) != 38:
-        raise RuntimeError(f"expected 38 fixed 3OA wrapper sources, found {len(sources)}")
-    for path in sources:
-        name, document = convert(path.stem, json.loads(path.read_text(encoding="utf-8")))
+        raise RuntimeError(f"retired general-purpose templates remain: {retired}")
+    for template_name, template in templates:
+        name, document = convert(template_name, template)
         generator.write_device(name, document)
-    print(f"generated {len(sources)} explicit-bus Ambi wrappers")
+    print(f"generated {len(templates)} explicit-bus Ambi wrappers")
 
 
 if __name__ == "__main__":

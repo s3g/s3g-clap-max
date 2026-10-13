@@ -101,8 +101,9 @@ void ClapEngine::close()
     outputFloatPointers_.clear();
     inputFloatStorage_.clear();
     outputFloatStorage_.clear();
-    inputDoubleStorage_.clear();
     outputDoubleStorage_.clear();
+    inputFloatSilence_.clear();
+    inputDoubleSilence_.clear();
     inputChannels_ = 0;
     outputChannels_ = 0;
     maximumFrames_ = 0;
@@ -122,8 +123,13 @@ bool ClapEngine::configurePorts(std::string& error)
     const auto* ports = plugin_.extension<clap_plugin_audio_ports_t>(
         CLAP_EXT_AUDIO_PORTS);
     if (!ports || !ports->count || !ports->get) {
-        error = "plugin does not expose CLAP audio ports";
-        return false;
+        // MIDI-only CLAPs such as Tracker legitimately omit audio ports.
+        // Max can still drive their process callback with a silent signal
+        // outlet, while CLAP receives zero audio buses.
+        inputChannels_ = 0;
+        outputChannels_ = 0;
+        useDoublePrecision_ = true;
+        return true;
     }
 
     auto collect = [&](bool isInput, std::vector<AudioPort>& destination,
@@ -207,11 +213,11 @@ void ClapEngine::configureAudioStorage(uint32_t maximumFrames)
             std::vector<float>(maximumFrames_, 0.0f));
         outputFloatStorage_.assign(outputChannels_,
             std::vector<float>(maximumFrames_, 0.0f));
+        inputFloatSilence_.assign(maximumFrames_, 0.0f);
     } else {
-        inputDoubleStorage_.assign(inputChannels_,
-            std::vector<double>(maximumFrames_, 0.0));
         outputDoubleStorage_.assign(outputChannels_,
             std::vector<double>(maximumFrames_, 0.0));
+        inputDoubleSilence_.assign(maximumFrames_, 0.0);
     }
 }
 
@@ -308,6 +314,7 @@ bool ClapEngine::captureOutputEvent(const clap_event_header_t* header)
         const auto* event = reinterpret_cast<const clap_event_midi_t*>(header);
         captured.type = ClapOutputEvent::Type::Midi;
         captured.port = event->port_index;
+        captured.sampleOffset = header->time;
         std::copy(std::begin(event->data), std::end(event->data),
             captured.midi.begin());
     } else {
@@ -330,7 +337,6 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
         return false;
     }
 
-    std::array<ProcessEvent, kMaximumEvents> processEvents {};
     uint32_t eventCount = 0;
     {
         std::unique_lock<std::mutex> lock(pendingMutex_, std::try_to_lock);
@@ -338,7 +344,7 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
             eventCount = static_cast<uint32_t>(pendingEvents_.size());
             for (uint32_t i = 0; i < eventCount; ++i) {
                 const PendingEvent& pending = pendingEvents_[i];
-                ProcessEvent& event = processEvents[i];
+                ProcessEvent& event = processEvents_[i];
                 event.type = pending.type;
                 if (pending.type == PendingEvent::Type::Parameter) {
                     event.parameter.header = {
@@ -355,7 +361,8 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
                     event.parameter.value = pending.value;
                 } else {
                     event.midi.header = {
-                        sizeof(clap_event_midi_t), 0,
+                        sizeof(clap_event_midi_t),
+                        std::min(pending.sampleOffset, frames - 1u),
                         CLAP_CORE_EVENT_SPACE_ID, CLAP_EVENT_MIDI,
                         CLAP_EVENT_IS_LIVE,
                     };
@@ -366,6 +373,24 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
             }
             pendingEvents_.clear();
         }
+    }
+    // CLAP input events must be sorted by sample time. A stable insertion
+    // sort keeps same-frame note-off/note-on and parameter order intact without
+    // allocating on the audio thread (the fixed queue has at most 256 events).
+    for (uint32_t i = 1; i < eventCount; ++i) {
+        ProcessEvent event = processEvents_[i];
+        const auto time = event.type == PendingEvent::Type::Midi
+            ? event.midi.header.time : event.parameter.header.time;
+        uint32_t j = i;
+        while (j > 0) {
+            const ProcessEvent& previous = processEvents_[j - 1u];
+            const auto previousTime = previous.type == PendingEvent::Type::Midi
+                ? previous.midi.header.time : previous.parameter.header.time;
+            if (previousTime <= time) break;
+            processEvents_[j] = previous;
+            --j;
+        }
+        processEvents_[j] = event;
     }
 
     uint32_t flatInput = 0;
@@ -381,9 +406,8 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
                 if (inputs && flatInput < inputCount && inputs[flatInput]) {
                     inputDoublePointers_[port][channel] = inputs[flatInput];
                 } else {
-                    auto& silence = inputDoubleStorage_[flatInput];
-                    std::fill(silence.begin(), silence.begin() + frames, 0.0);
-                    inputDoublePointers_[port][channel] = silence.data();
+                    inputDoublePointers_[port][channel] =
+                        inputDoubleSilence_.data();
                 }
             }
             buffer.data64 = inputDoublePointers_[port].data();
@@ -392,12 +416,16 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
             for (uint32_t channel = 0; channel < buffer.channel_count;
                  ++channel, ++flatInput) {
                 float* destination = inputFloatStorage_[flatInput].data();
-                const double* source = flatInput < inputCount
+                const double* source = inputs && flatInput < inputCount
                     ? inputs[flatInput] : nullptr;
-                for (uint32_t frame = 0; frame < frames; ++frame)
-                    destination[frame] = source
-                        ? static_cast<float>(source[frame]) : 0.0f;
-                inputFloatPointers_[port][channel] = destination;
+                if (source) {
+                    for (uint32_t frame = 0; frame < frames; ++frame)
+                        destination[frame] = static_cast<float>(source[frame]);
+                    inputFloatPointers_[port][channel] = destination;
+                } else {
+                    inputFloatPointers_[port][channel] =
+                        inputFloatSilence_.data();
+                }
             }
             buffer.data32 = inputFloatPointers_[port].data();
             buffer.data64 = nullptr;
@@ -429,7 +457,7 @@ bool ClapEngine::process(double** inputs, uint32_t inputCount,
         }
     }
 
-    InputEventView eventView { processEvents.data(), eventCount };
+    InputEventView eventView { processEvents_.data(), eventCount };
     clap_input_events_t inputEvents {
         &eventView, inputEventCount, inputEventGet,
     };
@@ -564,9 +592,16 @@ bool ClapEngine::enqueueParameterById(clap_id id, double value)
 bool ClapEngine::enqueueMidi(uint16_t port, uint8_t status, uint8_t data1,
     uint8_t data2)
 {
+    return enqueueMidiAt(port, 0u, status, data1, data2);
+}
+
+bool ClapEngine::enqueueMidiAt(uint16_t port, uint32_t sampleOffset,
+    uint8_t status, uint8_t data1, uint8_t data2)
+{
     PendingEvent event {};
     event.type = PendingEvent::Type::Midi;
     event.port = port;
+    event.sampleOffset = sampleOffset;
     event.midi = { status, data1, data2 };
     return queueEvent(event);
 }

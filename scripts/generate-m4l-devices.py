@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import json
+import os
 import struct
 from dataclasses import dataclass
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIR = ROOT / "source" / "m4l"
-DEVICE_DIR = ROOT / "package" / "devices"
+# A staging root lets us validate generated AMXDs without overwriting a
+# hard-linked device in a running Live User Library.
+GENERATED_ROOT = Path(os.environ.get("S3G_M4L_GENERATED_ROOT", ROOT))
+SOURCE_DIR = GENERATED_ROOT / "source" / "m4l"
+DEVICE_DIR = GENERATED_ROOT / "package" / "devices"
 ENVELOP_ROUTING_DIR = ROOT / "vendor" / "envelop-for-live" / "patchers"
 S3G_ROUTING_DIR = ROOT / "package" / "patchers" / "s3g-routing"
 
@@ -19,12 +23,9 @@ COMPACT_DEVICE_HEIGHT = 169.0
 MAIN_OUT_DEVICE_HEIGHT = 169.0
 DEVICE_EDGE_PADDING = 12.0
 MULTICHANNEL_SLOT_COUNT = 32
-MULTICHANNEL_PAIR_COUNT = MULTICHANNEL_SLOT_COUNT // 2
 FIFTH_ORDER_SLOT_COUNT = 36
 FIFTH_ORDER_LIVE_CHANNELS = FIFTH_ORDER_SLOT_COUNT + 2
 DRUM_SLOT_COUNT = 16
-DRUM_PAIR_COUNT = DRUM_SLOT_COUNT // 2
-DRUM_BUS_PREFIX = "s3g-drum16"
 # Live reserves device channels 1-2 for its ordinary stereo chain. They are
 # transport scaffolding, not part of the public 32-channel bus or a CLAP's
 # input count. Bus slots 1-32 therefore occupy Live device channels 3-34.
@@ -66,7 +67,8 @@ ROUTING_NAMES = {
     "e4l.dict.list": "s3g.dict.list",
 }
 
-# Public filenames follow the s3g-dsp family order: s3g 3OA Encoder <kind>.
+# Public Ambi filenames use the s3g-dsp family order; 3OA names below are
+# in-memory conversion template identifiers and are never packaged.
 
 
 @dataclass(frozen=True)
@@ -1401,8 +1403,10 @@ def ui_panel(
     return box(
         object_id,
         "panel",
-        rect,
-        presentation_rect=rect,
+        # Max's edit and Live presentation layouts are independent. A shared
+        # list would let debug-view placement move the visible panel too.
+        list(rect),
+        presentation_rect=list(rect),
         numinlets=1,
         numoutlets=0,
         outlettype=[],
@@ -1675,6 +1679,10 @@ def autogain_input_gain() -> dict[str, object]:
     control = gain["box"]
     control["id"] = "obj-autogain-input-gain"
     control["varname"] = "autogain_input_gain"
+    # Match Quad's compact fader geometry on the Stereo endpoint too. Without
+    # these attributes Max draws the 36-lane gain outside its Live face.
+    control["orientation"] = 0
+    control["thickness"] = 2
     value = control["saved_attribute_attributes"]["valueof"]
     value["parameter_longname"] = "Output AutoGain Input Gain"
     value["parameter_shortname"] = "Input Gain"
@@ -2463,324 +2471,6 @@ def routing_device_patcher(
     }
 
 
-def send_channel_gain(channel: int, x: float) -> dict[str, object]:
-    """A separately metered mono gain for one Live stereo input channel."""
-    first = channel == 1
-    return box(
-        "obj-send-gain" if first else "obj-send-gain-2",
-        "live.gain~", [125.0 + (channel - 1) * 120.0, 220.0, 105.0, 48.0],
-        presentation_rect=[x, 80.0, 100.0, 48.0],
-        fontname=UI_FONT, fontsize=UI_FONT_SIZE,
-        channels=1, display_range=[-70.0, 6.0], ignoreclick=0,
-        lastchannelcount=0, numinlets=1, numoutlets=4,
-        orientation=1, outlettype=["signal", "", "float", "list"],
-        parameter_enable=1,
-        coldcolor=COLOR_VALUE, warmcolor=COLOR_ACCENT,
-        hotcolor=COLOR_TEXT, overloadcolor=COLOR_TEXT,
-        slidercolor=COLOR_GRID, textcolor=COLOR_DIM,
-        tribordercolor=COLOR_TEXT, tricolor=COLOR_ACCENT,
-        trioncolor=COLOR_ACCENT,
-        saved_attribute_attributes={"valueof": {
-            # The first gain keeps its original Live parameter identity so
-            # existing Sets recall the same value on input 1.
-            "parameter_longname": (
-                "Multichannel Send Gain" if first else "Send Input 2 Gain"
-            ),
-            "parameter_shortname": "Send Gain" if first else "Gain 2",
-            "parameter_initial_enable": 1,
-            "parameter_initial": [0],
-            "parameter_invisible": 0,
-            "parameter_mmax": 6.0,
-            "parameter_mmin": -70.0,
-            "parameter_modmode": 0,
-            "parameter_type": 0,
-            "parameter_unitstyle": 4,
-        }},
-        showname=0, shownumber=0,
-        varname="multichannel_send_gain" if first else "send_input_2_gain",
-    )
-
-
-def multichannel_send_device(
-    *, slot_count: int = MULTICHANNEL_SLOT_COUNT,
-    bus_prefix: str = "s3g-multichannel",
-    title: str = "s3g Send Stereo to 32ch Bus",
-) -> dict[str, object]:
-    if slot_count <= 0 or slot_count % 2:
-        raise ValueError("send bus must have an even, positive slot count")
-    pair_count = slot_count // 2
-    live_channels = slot_count + 2
-    boxes = multichannel_device_ui()
-    boxes.extend([
-        box(
-            "obj-bus-label", "comment", [12.0, 10.0, 52.0, CONTROL_HEIGHT],
-            text="SND BUS", presentation_rect=[12.0, 10.0, 52.0, CONTROL_HEIGHT],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM,
-        ),
-        *routing_menu_controls("obj-bus-number", "Multichannel Bus", "Bus",
-                           1, 16, 1, 70.0),
-        box(
-            "obj-pair-label", "comment", [138.0, 10.0, 28.0, CONTROL_HEIGHT],
-            text="PAIR", presentation_rect=[138.0, 10.0, 28.0, CONTROL_HEIGHT],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM,
-        ),
-        *routing_menu_controls(
-            "obj-pair-number", "Destination Pair", "Pair",
-            1, pair_count, 1, 170.0, width=80.0,
-            labels=[f"{pair * 2 - 1:02d}/{pair * 2:02d}"
-                    for pair in range(1, pair_count + 1)],
-        ),
-        box("obj-gain-1-label", "comment", [12.0, 44.0, 60.0, 20.0],
-            text="LEVEL 1", presentation_rect=[12.0, 44.0, 60.0, 20.0],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM),
-        box("obj-gain-2-label", "comment", [196.0, 44.0, 60.0, 20.0],
-            text="LEVEL 2", presentation_rect=[196.0, 44.0, 60.0, 20.0],
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM),
-        send_channel_gain(1, 12.0),
-        send_channel_gain(2, 196.0),
-        box(
-            "obj-gain-link", "live.text", [750.0, 220.0, 80.0, 22.0],
-            presentation_rect=[116.0, 44.0, 68.0, CONTROL_HEIGHT],
-            text="UNLINKED", texton="LINKED",
-            automation="Unlinked", automationon="Linked",
-            numinlets=1, numoutlets=2, outlettype=["", ""],
-            parameter_enable=1, mode=1,
-            activebgcolor=COLOR_CELL, activebgoncolor=COLOR_ACCENT,
-            activetextcolor=COLOR_BUTTON_TEXT,
-            activetextoncolor=COLOR_BACKGROUND,
-            bgcolor=COLOR_CELL, bgoncolor=COLOR_ACCENT,
-            textcolor=COLOR_BUTTON_TEXT, textoffcolor=COLOR_BUTTON_TEXT,
-            bordercolor=COLOR_GRID, focusbordercolor=COLOR_ACCENT,
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, rounded=2.0,
-            saved_attribute_attributes={"valueof": {
-                "parameter_longname": "Send Gain Link",
-                "parameter_shortname": "Link",
-                "parameter_initial_enable": 1,
-                "parameter_initial": [1],
-                "parameter_enum": ["Unlinked", "Linked"],
-                "parameter_mmax": 1,
-                "parameter_modmode": 0,
-                "parameter_type": 2,
-            }},
-            varname="send_gain_link",
-        ),
-        send_pan_control(1, 124.0, -50.0),
-        input_mute_button(1, 12.0, "Send", 56.0),
-        send_pan_control(2, 308.0, 50.0),
-        input_mute_button(2, 196.0, "Send", 56.0),
-        box(
-            "obj-dry-mode", "live.text", [470.0, 155.0, 85.0, 22.0],
-            presentation_rect=[258.0, 10.0, 76.0, CONTROL_HEIGHT],
-            text="DRY KEEP", texton="BUS ONLY",
-            automation="Keep", automationon="Bus Only",
-            numinlets=1, numoutlets=2, outlettype=["", ""],
-            parameter_enable=1, mode=1,
-            activebgcolor=COLOR_CELL,
-            activebgoncolor=COLOR_ACCENT,
-            activetextcolor=COLOR_DIM,
-            activetextoncolor=COLOR_BACKGROUND,
-            bgcolor=COLOR_CELL,
-            bgoncolor=COLOR_ACCENT,
-            textcolor=COLOR_DIM,
-            textoffcolor=COLOR_DIM,
-            bordercolor=COLOR_GRID,
-            focusbordercolor=COLOR_ACCENT,
-            fontname=UI_FONT, fontsize=UI_FONT_SIZE, rounded=2.0,
-            saved_attribute_attributes={
-                "valueof": {
-                    "parameter_longname": "Dry Output",
-                    "parameter_shortname": "Dry",
-                    "parameter_initial_enable": 1,
-                    "parameter_initial": [0],
-                    "parameter_enum": ["Keep", "Bus Only"],
-                    "parameter_mmax": 1,
-                    "parameter_modmode": 0,
-                    "parameter_type": 2,
-                }
-            },
-            varname="dry_output",
-        ),
-        new_object("obj-plugin", "plugin~", 40.0, 220.0, 55.0, 2, 2,
-                   ["signal", "signal"]),
-        new_object("obj-dry-invert", "!- 1", 470.0, 190.0, 38.0, 1, 1),
-        new_object("obj-dry-left", "*~ 1.", 40.0, 300.0, 42.0, 2, 1,
-                   ["signal"]),
-        new_object("obj-dry-right", "*~ 1.", 95.0, 300.0, 42.0, 2, 1,
-                   ["signal"]),
-        new_object("obj-input-mute-1-invert", "!- 1", 640.0, 300.0,
-                   38.0, 1, 1),
-        new_object("obj-input-mute-2-invert", "!- 1", 640.0, 340.0,
-                   38.0, 1, 1),
-        new_object("obj-input-mute-1-gain", "*~ 1.", 390.0, 300.0,
-                   42.0, 2, 1, ["signal"]),
-        new_object("obj-input-mute-2-gain", "*~ 1.", 445.0, 300.0,
-                   42.0, 2, 1, ["signal"]),
-        new_object("obj-input-panner", "M4L.pan2~", 510.0, 300.0,
-                   82.0, 4, 2, ["signal", "signal"]),
-        new_object("obj-gate-left", f"gate~ {pair_count} 1 @ramptime 5.",
-                   165.0, 300.0, 170.0, 2, pair_count,
-                   ["signal"] * pair_count),
-        new_object("obj-gate-right", f"gate~ {pair_count} 1 @ramptime 5.",
-                   165.0, 340.0, 170.0, 2, pair_count,
-                   ["signal"] * pair_count),
-        new_object(
-            "obj-plugout",
-            "plugout~ " + " ".join(
-                str(i) for i in range(1, live_channels + 1)
-            ),
-            40.0, 430.0, 610.0,
-            live_channels,
-            live_channels,
-            ["signal"] * live_channels,
-        ),
-        new_object("obj-device", "s3g.live.thisdevice", 470.0, 220.0,
-                   125.0, 1, 1),
-        new_object("obj-bus-send", f"s3g.bus.send {bus_prefix}-1",
-                   470.0, 300.0, 215.0, 3, 0),
-        new_object("obj-bus-symbol", f"sprintf {bus_prefix}-%ld",
-                   470.0, 260.0, 180.0, 1, 1),
-        box("obj-bus-mode", "message", [700.0, 300.0, 30.0, 22.0], text="0"),
-        new_object("obj-init", "loadbang", 470.0, 390.0, 65.0, 1, 1,
-                   ["bang"]),
-        new_object("obj-init-defer", "deferlow", 470.0, 425.0, 58.0, 1, 1),
-        new_object("obj-init-trigger", "t b b b b", 470.0, 460.0,
-                   68.0, 1, 4, ["bang"] * 4),
-        new_object("obj-channel-init-trigger", "t b b b b", 820.0, 460.0,
-                   68.0, 1, 4, ["bang"] * 4),
-        box("obj-bus-output", "message", [550.0, 495.0, 78.0, 22.0],
-            text="outputvalue"),
-        box("obj-pair-output", "message", [640.0, 495.0, 78.0, 22.0],
-            text="outputvalue"),
-        box("obj-dry-output", "message", [730.0, 495.0, 78.0, 22.0],
-            text="outputvalue"),
-        box("obj-pan-1-output", "message", [820.0, 495.0, 78.0, 22.0],
-            text="outputvalue"),
-        box("obj-mute-1-output", "message", [820.0, 525.0, 78.0, 22.0],
-            text="outputvalue"),
-        box("obj-pan-2-output", "message", [910.0, 495.0, 78.0, 22.0],
-            text="outputvalue"),
-        box("obj-mute-2-output", "message", [910.0, 525.0, 78.0, 22.0],
-            text="outputvalue"),
-        new_object("obj-gain-link-trigger", "t i i", 750.0, 265.0,
-                   40.0, 1, 2),
-        new_object("obj-gain-link-on", "sel 1", 750.0, 305.0,
-                   42.0, 1, 2),
-        new_object("obj-gain-link-1-to-2", "gate 1 0", 820.0, 305.0,
-                   62.0, 2, 1),
-        new_object("obj-gain-link-2-to-1", "gate 1 0", 900.0, 305.0,
-                   62.0, 2, 1),
-        new_object("obj-gain-1-set", "prepend set", 900.0, 345.0,
-                   78.0, 1, 1),
-        new_object("obj-gain-2-set", "prepend set", 820.0, 345.0,
-                   78.0, 1, 1),
-        box("obj-gain-1-output", "message", [750.0, 345.0, 80.0, 22.0],
-            text="outputvalue"),
-        new_object("obj-gain-link-init-delay", "delay 50", 1000.0, 465.0,
-                   62.0, 1, 1),
-        box("obj-gain-link-output", "message", [1000.0, 495.0, 80.0, 22.0],
-            text="outputvalue"),
-    ])
-    lines = [
-        line("obj-plugin", 0, "obj-dry-left", 0),
-        line("obj-plugin", 1, "obj-dry-right", 0),
-        line("obj-dry-left", 0, "obj-plugout", 0),
-        line("obj-dry-right", 0, "obj-plugout", 1),
-        line("obj-plugin", 0, "obj-send-gain", 0),
-        line("obj-plugin", 1, "obj-send-gain-2", 0),
-        line("obj-send-gain", 0, "obj-input-mute-1-gain", 0),
-        line("obj-send-gain-2", 0, "obj-input-mute-2-gain", 0),
-        line("obj-send-gain", 1, "obj-gain-link-1-to-2", 1),
-        line("obj-send-gain-2", 1, "obj-gain-link-2-to-1", 1),
-        line("obj-gain-link-1-to-2", 0, "obj-gain-2-set", 0),
-        line("obj-gain-link-2-to-1", 0, "obj-gain-1-set", 0),
-        line("obj-gain-1-set", 0, "obj-send-gain", 0),
-        line("obj-gain-2-set", 0, "obj-send-gain-2", 0),
-        line("obj-gain-link", 0, "obj-gain-link-trigger", 0),
-        line("obj-gain-link-trigger", 1, "obj-gain-link-1-to-2", 0),
-        line("obj-gain-link-trigger", 1, "obj-gain-link-2-to-1", 0),
-        line("obj-gain-link-trigger", 0, "obj-gain-link-on", 0),
-        line("obj-gain-link-on", 0, "obj-gain-1-output", 0),
-        line("obj-gain-1-output", 0, "obj-send-gain", 0),
-        line("obj-init-defer", 0, "obj-gain-link-init-delay", 0),
-        line("obj-gain-link-init-delay", 0, "obj-gain-link-output", 0),
-        line("obj-gain-link-output", 0, "obj-gain-link", 0),
-        line("obj-input-mute-1", 0, "obj-input-mute-1-invert", 0),
-        line("obj-input-mute-2", 0, "obj-input-mute-2-invert", 0),
-        line("obj-input-mute-1-invert", 0, "obj-input-mute-1-gain", 1),
-        line("obj-input-mute-2-invert", 0, "obj-input-mute-2-gain", 1),
-        line("obj-input-mute-1-gain", 0, "obj-input-panner", 0),
-        line("obj-input-pan-1", 0, "obj-input-panner", 1),
-        line("obj-input-mute-2-gain", 0, "obj-input-panner", 2),
-        line("obj-input-pan-2", 0, "obj-input-panner", 3),
-        line("obj-input-panner", 0, "obj-gate-left", 1),
-        line("obj-input-panner", 1, "obj-gate-right", 1),
-        line("obj-pair-number", 0, "obj-gate-left", 0),
-        line("obj-pair-number", 0, "obj-gate-right", 0),
-        line("obj-dry-mode", 0, "obj-dry-invert", 0),
-        line("obj-dry-invert", 0, "obj-dry-left", 1),
-        line("obj-dry-invert", 0, "obj-dry-right", 1),
-        line("obj-bus-number", 0, "obj-bus-symbol", 0),
-        line("obj-bus-symbol", 0, "obj-bus-send", 2),
-        line("obj-device", 0, "obj-bus-send", 0),
-        line("obj-bus-mode", 0, "obj-bus-send", 1),
-        line("obj-init", 0, "obj-init-defer", 0),
-        line("obj-init-defer", 0, "obj-init-trigger", 0),
-        line("obj-init-defer", 0, "obj-channel-init-trigger", 0),
-        line("obj-init-trigger", 3, "obj-bus-output", 0),
-        line("obj-bus-output", 0, "obj-bus-number", 0),
-        line("obj-init-trigger", 2, "obj-pair-output", 0),
-        line("obj-pair-output", 0, "obj-pair-number", 0),
-        line("obj-init-trigger", 1, "obj-dry-output", 0),
-        line("obj-dry-output", 0, "obj-dry-mode", 0),
-        line("obj-channel-init-trigger", 3, "obj-pan-1-output", 0),
-        line("obj-pan-1-output", 0, "obj-input-pan-1", 0),
-        line("obj-channel-init-trigger", 2, "obj-mute-1-output", 0),
-        line("obj-mute-1-output", 0, "obj-input-mute-1", 0),
-        line("obj-channel-init-trigger", 1, "obj-pan-2-output", 0),
-        line("obj-pan-2-output", 0, "obj-input-pan-2", 0),
-        line("obj-channel-init-trigger", 0, "obj-mute-2-output", 0),
-        line("obj-mute-2-output", 0, "obj-input-mute-2", 0),
-        line("obj-init-trigger", 0, "obj-bus-mode", 0),
-    ]
-    replay_boxes, replay_lines = bus_menu_replay_controls(
-        "obj-bus-number", "obj-init-defer", "obj-bus-output",
-        1120.0, 450.0,
-    )
-    boxes.extend(replay_boxes)
-    lines.extend(replay_lines)
-    lines.extend(routing_menu_lines("obj-bus-number", guarded_write=True))
-    lines.extend(routing_menu_lines("obj-pair-number"))
-    for pair_index in range(pair_count):
-        lines.extend([
-            line("obj-gate-left", pair_index, "obj-plugout",
-                 2 + pair_index * 2),
-            line("obj-gate-right", pair_index, "obj-plugout",
-                 3 + pair_index * 2),
-        ])
-    return routing_device_patcher(
-        title,
-        (
-            "Routes a stereo Live track into one selectable pair of a private "
-            f"{slot_count}-channel s3g bus without imposing an Ambisonics format or "
-            "changing the track's normal output routing."
-        ),
-        boxes,
-        lines,
-        {
-            "obj-bus-number": ["Multichannel Bus", "Bus", 0],
-            "obj-pair-number": ["Destination Pair", "Pair", 0],
-            "obj-send-gain": ["Multichannel Send Gain", "Send Gain", 0],
-            "obj-send-gain-2": ["Send Input 2 Gain", "Gain 2", 0],
-            "obj-gain-link": ["Send Gain Link", "Link", 0],
-            "obj-input-pan-1": ["Send Input 1 Pan", "Pan 1", 0],
-            "obj-input-mute-1": ["Send Input 1 Mute", "In 1 Mute", 0],
-            "obj-input-pan-2": ["Send Input 2 Pan", "Pan 2", 0],
-            "obj-input-mute-2": ["Send Input 2 Mute", "In 2 Mute", 0],
-            "obj-dry-mode": ["Dry Output", "Dry", 0],
-        },
-    )
-
-
 def multichannel_bus_gain(
     slot_count: int = MULTICHANNEL_SLOT_COUNT,
 ) -> dict[str, object]:
@@ -2806,9 +2496,9 @@ def multichannel_bus_gain(
 
 def multichannel_to_bus_send_device(
     *,
-    slot_count: int = MULTICHANNEL_SLOT_COUNT,
-    bus_prefix: str = "s3g-multichannel",
-    title: str = "s3g Send Multichannel to 32ch Bus",
+    slot_count: int = FIFTH_ORDER_SLOT_COUNT,
+    bus_prefix: str = "s3g-bus36",
+    title: str = "s3g Bus Send 36",
 ) -> dict[str, object]:
     """Place stereo or auxiliary input lanes onto a numbered generic bus."""
     if slot_count <= 0 or slot_count + 2 > 64:
@@ -3129,9 +2819,9 @@ def multichannel_to_bus_send_device(
 
 def multichannel_receive_device(
     *,
-    slot_count: int = MULTICHANNEL_SLOT_COUNT,
-    bus_prefix: str = "s3g-multichannel",
-    title: str = "s3g Multichannel Receive",
+    slot_count: int = FIFTH_ORDER_SLOT_COUNT,
+    bus_prefix: str = "s3g-bus36",
+    title: str = "s3g Bus Receive 36",
 ) -> dict[str, object]:
     if slot_count <= 0 or slot_count + 2 > 64:
         raise ValueError("bus must leave two Live stereo channels within 64")
@@ -4242,6 +3932,338 @@ def speaker_main_out_device() -> dict[str, object]:
     return document
 
 
+def hardware_main_out_device() -> dict[str, object]:
+    """CLAP-free end of chain: 32 mono slots to 16 Live hardware pairs.
+
+    Start from the already-proven Speaker output matrix and DeviceIO popup so
+    their saved routing behavior and explicit matrixctrl event order stay the
+    same. The decoder, its state, and its recorder do not belong in this device.
+    """
+    document = speaker_main_out_device()
+    preliminary = {"obj-bus-receive", "obj-param-topology-1"}
+    document["patcher"]["boxes"] = [
+        entry for entry in document["patcher"]["boxes"]
+        if entry["box"]["id"] not in preliminary
+    ]
+    document["patcher"]["lines"] = [
+        entry for entry in document["patcher"]["lines"]
+        if entry["patchline"]["source"][0] not in preliminary
+        and entry["patchline"]["destination"][0] not in preliminary
+    ]
+    document["patcher"]["boxes"].append(new_object(
+        "obj-bus-insert", "s3g.bus.insert", 700.0, 340.0, 100.0, 1, 0,
+    ))
+    document["patcher"]["lines"].append(
+        line("obj-device", 0, "obj-bus-insert", 0)
+    )
+    arrange_speaker_main_debug_view(document)
+    patch = document["patcher"]
+    patch["name"] = "s3g Main Hardware Out 32"
+    patch["description"] = (
+        "End-of-chain hardware endpoint. Reads auxiliary channels 1–32 from "
+        "the preceding s3g device or Bus Receive 36, applies one linked "
+        "output gain, remaps mono channels to 32 output slots, and assigns "
+        "the 16 Live stereo output buses to hardware pairs. Ordinary Live "
+        "stereo is silent; auxiliary channels 33–36 are not sent to hardware."
+    )
+    patch["digest"] = patch["description"]
+    patch["tags"] = "s3g hardware output 32-channel end of chain"
+    keep = {
+        "obj-ui-background", "obj-input-panel", "obj-section-divider",
+        "obj-output-panel", "obj-plugin", "obj-plugout", "obj-device",
+        "obj-device-startup-trigger", "obj-once", "obj-output-init",
+        "obj-bus-insert", "obj-hardware-button", "obj-hardware-open",
+        "obj-hardware-pcontrol", "obj-hardware-routing",
+    }
+    keep.update(entry["box"]["id"] for entry in patch["boxes"]
+                if entry["box"]["id"].startswith("obj-mono-"))
+    patch["boxes"] = [entry for entry in patch["boxes"]
+                      if entry["box"]["id"] in keep]
+    boxes = {entry["box"]["id"]: entry["box"] for entry in patch["boxes"]}
+    patch["lines"] = [entry for entry in patch["lines"]
+                      if entry["patchline"]["source"][0] in boxes
+                      and entry["patchline"]["destination"][0] in boxes
+                      and not (
+                          entry["patchline"]["source"][0] == "obj-plugin"
+                          and entry["patchline"]["destination"][0] == "obj-plugout"
+                      )
+                      and not (
+                          entry["patchline"]["source"][0] == "obj-device"
+                          and entry["patchline"]["destination"][0] == "obj-bus-insert"
+                      )]
+    patch["parameters"] = {
+        key: value for key, value in patch["parameters"].items()
+        if key in {"parameterbanks", "inherited_shortname"}
+        or key.startswith("obj-mono-output-")
+    }
+
+    plugin = boxes["obj-plugin"]
+    plugin["text"] = "plugin~ " + " ".join(
+        str(i) for i in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1))
+    plugin["numinlets"] = FIFTH_ORDER_LIVE_CHANNELS
+    plugin["numoutlets"] = FIFTH_ORDER_LIVE_CHANNELS
+    plugin["outlettype"] = ["signal"] * FIFTH_ORDER_LIVE_CHANNELS
+    startup = boxes["obj-device-startup-trigger"]
+    startup["text"] = "t l l l"
+    startup["numoutlets"] = 3
+    startup["outlettype"] = ["list"] * 3
+    patch["lines"] = [entry for entry in patch["lines"]
+                      if entry["patchline"]["source"][0]
+                      != "obj-device-startup-trigger"]
+    patch["lines"].extend([
+        line("obj-device-startup-trigger", 2, "obj-bus-insert", 0),
+        line("obj-device-startup-trigger", 1, "obj-hardware-routing", 0),
+        line("obj-device-startup-trigger", 0, "obj-once", 0),
+    ])
+    boxes["obj-hardware-button"]["presentation_rect"] = [
+        12.0, 10.0, 100.0, CONTROL_HEIGHT,
+    ]
+    boxes["obj-mono-grid"]["annotation"] = (
+        "Rows are input channels on the selected page; columns are mono "
+        "hardware slots 01–32. Click a lit cell again to disconnect."
+    )
+    boxes["obj-mono-page-menu"]["annotation"] = (
+        "Choose which eight incoming chain channels the grid edits."
+    )
+    for channel in range(1, 33):
+        control = f"obj-mono-output-{channel}"
+        state = boxes[control]["saved_attribute_attributes"]["valueof"]
+        state["parameter_longname"] = f"Main Input {channel} Output"
+        patch["parameters"][control] = [
+            f"Main Input {channel} Output", f"Out {channel}", 0,
+        ]
+
+    gain = panner_input_gain()["box"]
+    gain["id"] = "obj-main-output-gain"
+    gain["channels"] = 32
+    gain["numinlets"] = 32
+    gain["numoutlets"] = 35
+    gain["outlettype"] = ["signal"] * 32 + ["", "float", "list"]
+    gain["varname"] = "main_output_gain"
+    gain["patching_rect"] = [80.0, 250.0, 172.0, 120.0]
+    gain["orientation"] = 0
+    gain["thickness"] = 2
+    gain["saved_attribute_attributes"]["valueof"]["parameter_longname"] = (
+        "Main Output Gain"
+    )
+    gain["saved_attribute_attributes"]["valueof"]["parameter_shortname"] = (
+        "Main Gain"
+    )
+    patch["boxes"].append({"box": gain})
+    patch["boxes"].append(box(
+        "obj-main-credit", "comment", [700.0, 160.0, 620.0, 22.0],
+        text=("Hardware routing adapted from Envelop for Live by Envelop "
+              "(LGPL-2.1); s3g namespaced controls and 32-mono matrix. "
+              "https://github.com/EnvelopSound/EnvelopForLive"),
+    ))
+    patch["parameters"]["obj-main-output-gain"] = [
+        "Main Output Gain", "Main Gain", 0,
+    ]
+    patch["lines"].extend(
+        line("obj-plugin", channel + 2, "obj-main-output-gain", channel)
+        for channel in range(32)
+    )
+    patch["lines"].extend(
+        line("obj-main-output-gain", channel, "obj-mono-matrix", channel)
+        for channel in range(32)
+    )
+    return document
+
+
+def chain_output_processor_device(
+    document: dict[str, object], name: str, description: str,
+    output_channels: int = 32,
+) -> dict[str, object]:
+    """Move a multichannel processor's hardware stage to Main Hardware Out.
+
+    The CLAP, saved state, parameters, input gain and optional pre-decoder
+    recorder stay with their processor. Only the hardware matrix/DeviceIO
+    controls move; the same-track NEXT handoff is the established s3g bus one.
+    """
+    patch = document["patcher"]
+    boxes = {entry["box"]["id"]: entry["box"] for entry in patch["boxes"]}
+    if (boxes["obj-clap"]["numoutlets"] != output_channels + 1
+            or boxes["obj-plugin"]["numoutlets"] != FIFTH_ORDER_LIVE_CHANNELS
+            or ("obj-mono-matrix" not in boxes if output_channels == 32
+                else "obj-quad-output-gate-1" not in boxes)
+            or "obj-bus-insert" not in boxes):
+        raise ValueError(f"{name}: unexpected processor topology")
+    removed = {
+        object_id for object_id in boxes
+        if object_id.startswith(("obj-mono-", "obj-hardware-",
+                                 "obj-quad-output-"))
+        or object_id in {
+            "obj-output-init", "obj-once", "obj-device-split",
+            "obj-device-startup-trigger", "obj-input-panel",
+            "obj-section-divider", "obj-output-panel",
+        }
+    }
+    patch["boxes"] = [entry for entry in patch["boxes"]
+                      if entry["box"]["id"] not in removed]
+    patch["lines"] = [entry for entry in patch["lines"]
+                      if entry["patchline"]["source"][0] not in removed
+                      and entry["patchline"]["destination"][0] not in removed
+                      and not (
+                          entry["patchline"]["source"][0] == "obj-plugin"
+                          and entry["patchline"]["destination"][0] == "obj-plugout"
+                      )
+                      and not (
+                          entry["patchline"]["source"][0] == "obj-device"
+                          and entry["patchline"]["destination"][0] in {
+                              "obj-state-restore-init", "obj-bus-insert",
+                          }
+                      )]
+    patch["parameters"] = {
+        key: value for key, value in patch["parameters"].items()
+        if not key.startswith(("obj-mono-output-", "obj-quad-output-"))
+    }
+    plugout = boxes["obj-plugout"]
+    plugout["text"] = "plugout~ " + " ".join(
+        str(i) for i in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1))
+    plugout["numinlets"] = FIFTH_ORDER_LIVE_CHANNELS
+    plugout["numoutlets"] = FIFTH_ORDER_LIVE_CHANNELS
+    plugout["outlettype"] = ["signal"] * FIFTH_ORDER_LIVE_CHANNELS
+    patch["lines"].extend(
+        line("obj-clap", channel, "obj-plugout", channel + 2)
+        for channel in range(output_channels)
+    )
+    patch["boxes"].extend([
+        new_object("obj-chain-init", "t l l l", 800.0, 150.0,
+                   60.0, 1, 3, ["list"] * 3),
+        new_object("obj-next-order", "t b l l", 800.0, 250.0,
+                   60.0, 1, 3, ["bang", "list", "list"]),
+        new_object("obj-next-delay", "delay 300", 800.0, 300.0,
+                   75.0, 1, 1, ["bang"]),
+        new_object("obj-next-store", "zl.reg", 800.0, 350.0,
+                   55.0, 2, 2),
+        new_object("obj-next-trigger", "t l b", 1000.0, 250.0,
+                   50.0, 1, 2, ["list", "bang"]),
+        box("obj-next-mode", "message", [1000.0, 300.0, 30.0, 22.0],
+            text="1"),
+        new_object("obj-next-send", "s3g.bus.send s3g-chain-next",
+                   1000.0, 350.0, 220.0, 3, 0),
+    ])
+    patch["lines"].extend([
+        line("obj-device", 0, "obj-chain-init", 0),
+        line("obj-chain-init", 2, "obj-state-restore-init", 0),
+        line("obj-chain-init", 1, "obj-bus-insert", 0),
+        line("obj-chain-init", 0, "obj-next-order", 0),
+        line("obj-next-order", 2, "obj-next-store", 1),
+        line("obj-next-order", 1, "obj-next-trigger", 0),
+        line("obj-next-order", 0, "obj-next-delay", 0),
+        line("obj-next-delay", 0, "obj-next-store", 0),
+        line("obj-next-store", 0, "obj-next-trigger", 0),
+        line("obj-next-trigger", 1, "obj-next-mode", 0),
+        line("obj-next-mode", 0, "obj-next-send", 1),
+        line("obj-next-trigger", 0, "obj-next-send", 0),
+    ])
+    gain = (boxes.get("obj-ambi-input-gain")
+            or boxes.get("obj-panner-input-gain")
+            or boxes.get("obj-autogain-input-gain"))
+    if gain is None:
+        raise ValueError(f"{name}: expected linked input gain")
+    gain["presentation_rect"] = [12.0, 38.0, 172.0, 120.0]
+    gain["orientation"] = 0
+    gain["thickness"] = 2
+    if "obj-rec-file-button" in boxes:
+        for object_id, x, width in (
+            ("obj-rec-file-button", 84.0, 48.0),
+            ("obj-rec-toggle", 140.0, 48.0),
+            ("obj-rec-time", 196.0, 60.0),
+        ):
+            boxes[object_id]["presentation_rect"] = [
+                x, 10.0, width, CONTROL_HEIGHT,
+            ]
+    patch["name"] = name
+    patch["description"] = description
+    patch["digest"] = description
+    patch["tags"] = "s3g CLAP multichannel processor next in chain"
+    patch["devicewidth"] = fit_presentation_width(patch["boxes"])
+    patch["openrect"] = [0.0, 0.0, patch["devicewidth"], COMPACT_DEVICE_HEIGHT]
+    arrange_chain_processor_debug_view(document)
+    return document
+
+
+def arrange_chain_processor_debug_view(document: dict[str, object]) -> None:
+    """Top-down audio and startup lanes, with separate state/recorder lanes."""
+    patch = document["patcher"]
+    boxes = {entry["box"]["id"]: entry["box"] for entry in patch["boxes"]}
+    placed: set[str] = set()
+
+    def put(object_id: str, x: float, y: float) -> None:
+        rect = boxes[object_id]["patching_rect"]
+        boxes[object_id]["patching_rect"] = [x, y, rect[2], rect[3]]
+        placed.add(object_id)
+
+    for object_id, y in (
+        ("obj-plugin", 100.0),
+        ("obj-ambi-input-gain" if "obj-ambi-input-gain" in boxes else
+         "obj-panner-input-gain" if "obj-panner-input-gain" in boxes else
+         "obj-autogain-input-gain", 250.0),
+        ("obj-clap", 420.0), ("obj-plugout", 600.0),
+    ):
+        put(object_id, 40.0, y)
+    if "obj-rec-writer" in boxes:
+        put("obj-rec-writer", 40.0, 780.0)
+    for object_id, x, y in (
+        ("obj-gui-button", 800.0, 40.0),
+        ("obj-editor-trigger", 900.0, 40.0),
+        ("obj-editor", 1000.0, 40.0),
+        ("obj-device", 800.0, 100.0),
+        ("obj-chain-init", 800.0, 150.0),
+        ("obj-bus-insert", 800.0, 200.0),
+        ("obj-next-order", 800.0, 250.0),
+        ("obj-next-delay", 800.0, 300.0),
+        ("obj-next-store", 800.0, 350.0),
+        ("obj-next-trigger", 1000.0, 250.0),
+        ("obj-next-mode", 1000.0, 300.0),
+        ("obj-next-send", 1000.0, 350.0),
+    ):
+        put(object_id, x, y)
+    if "obj-rec-file-button" in boxes:
+        for object_id, x in (
+            ("obj-rec-file-button", 800.0),
+            ("obj-rec-toggle", 900.0),
+            ("obj-rec-time", 1000.0),
+        ):
+            put(object_id, x, 440.0)
+    controls = sorted(
+        (object_id for object_id in boxes
+         if object_id.startswith("obj-param-")
+         and object_id.removeprefix("obj-param-").isdigit()),
+        key=lambda object_id: int(object_id.removeprefix("obj-param-")),
+    )
+    for row, control in enumerate(controls):
+        suffix = control.removeprefix("obj-param-")
+        y = 100.0 + row * 55.0
+        for object_id, x in (
+            (control, 1300.0),
+            (f"obj-param-message-{suffix}", 1420.0),
+            (f"obj-param-reflect-{suffix}", 1550.0),
+        ):
+            put(object_id, x, y)
+    other_recorder = sorted(object_id for object_id in boxes
+                            if object_id.startswith("obj-rec-")
+                            and object_id not in placed)
+    for index, object_id in enumerate(other_recorder):
+        put(object_id, 4000.0, 100.0 + index * 42.0)
+    put("obj-ui-background", 5200.0, 100.0)
+    remaining = sorted(set(boxes) - placed)
+    for index, object_id in enumerate(remaining):
+        column, row = divmod(index, 35)
+        put(object_id, 2200.0 + column * 700.0, 100.0 + row * 48.0)
+    patch["rect"] = [120.0, 90.0, 6200.0, 2000.0]
+    entries = list(boxes.values())
+    for index, first in enumerate(entries):
+        x, y, width, height = first["patching_rect"]
+        for second in entries[index + 1:]:
+            sx, sy, sw, sh = second["patching_rect"]
+            if min(x + width, sx + sw) > max(x, sx) and min(y + height, sy + sh) > max(y, sy):
+                raise ValueError(
+                    f"overlapping processor patch objects: {first['id']}, {second['id']}"
+                )
+
+
 def multichannel_decoder_main_device(
     name: str, plugin_name: str, plugin_id: str, order_id: int,
     parameters: tuple[FixedParameter, ...],
@@ -5020,8 +5042,9 @@ def arrange_ambi36_debug_view(name: str, document: dict[str, object]) -> None:
         raise ValueError(f"{name}: unplaced debug-view objects: {sorted(missing)}")
 
 
-def write_device(name: str, document: dict[str, object]) -> None:
-    arrange_ambi36_debug_view(name, document)
+def write_device(name: str, document: dict[str, object], *, arrange: bool = True) -> None:
+    if arrange:
+        arrange_ambi36_debug_view(name, document)
     SOURCE_DIR.mkdir(parents=True, exist_ok=True)
     DEVICE_DIR.mkdir(parents=True, exist_ok=True)
     text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
@@ -5101,16 +5124,86 @@ SAMPLE_INSTRUMENT_SPECS = (
 )
 
 
+def ambi_conversion_templates() -> list[tuple[str, dict[str, object]]]:
+    """Build Ambi conversion inputs in memory, without packaging legacy devices."""
+    templates = [("s3g 3OA Encoder Path", path_encoder_device())]
+    for name, plugin_name, plugin_id, parameters, order_id in (
+        ("s3g 3OA Encoder Point", "s3g Ambi Encoder Point 64",
+         "org.s3g.s3g-dsp.ambi-point-encoder-64", POINT_PARAMETERS, 28),
+        ("s3g 3OA Encoder Cloud", "s3g Ambi Encoder Cloud 64",
+         "org.s3g.s3g-dsp.ambi-cloud-encoder-64", CLOUD_PARAMETERS, 4),
+        ("s3g 3OA Encoder Surface Terrain",
+         "s3g Ambi Encoder Surface Terrain 64",
+         "org.s3g.s3g-dsp.ambi-terrain-navigator-64", TERRAIN_PARAMETERS, 1),
+    ):
+        templates.append((name, path_encoder_device(
+            name, plugin_name, plugin_id, parameters, order_id,
+        )))
+    for name, plugin_name, plugin_id, inputs, parameters in (
+        ("s3g 3OA Encoder Cartography",
+         "s3g Ambi Encoder Cartography 64",
+         "org.s3g.s3g-dsp.ambi-cartography-encoder-64", 2,
+         CARTOGRAPHY_PARAMETERS),
+        ("s3g 3OA Encoder Ray", "s3g Ambi Encoder Ray 64",
+         "org.s3g.s3g-dsp.ambi-ray-encoder", 1, RAY_PARAMETERS),
+        ("s3g 3OA Encoder Ray Bilocation",
+         "s3g Ambi Encoder Ray Bilocation 64",
+         "org.s3g.s3g-dsp.ambi-ray-bilocation-encoder", 1,
+         RAY_BILOCATION_PARAMETERS),
+    ):
+        templates.append((name, track_input_encoder_device(
+            name, plugin_name, plugin_id, inputs, parameters,
+        )))
+    for name, plugin_name, plugin_id, parameters, topology in (
+        ("s3g 3OA Encoder Modal", "s3g Ambi Encoder Modal 16",
+         "org.s3g.s3g-dsp.accelerometer-field-encoder-16",
+         MODAL_PARAMETERS, ((28, 3), (29, 0))),
+        ("s3g 3OA Encoder Medium", "s3g Ambi Encoder Medium 16",
+         "org.s3g.s3g-dsp.ambi-encoder-medium-16",
+         MEDIUM_PARAMETERS, ((1, 3),)),
+    ):
+        templates.append((name, track_input_encoder_device(
+            name, plugin_name, plugin_id, 1, parameters,
+            midi_input=True, topology=topology,
+        )))
+    for (kind, plugin_name, plugin_id, order_id, midi_input,
+         parameters, topology) in INSTRUMENT_ENCODERS:
+        name = f"s3g 3OA Encoder {kind}"
+        templates.append((name, instrument_encoder_device(
+            name, plugin_name, plugin_id, parameters, order_id,
+            midi_input, topology,
+        )))
+    for kind, plugin_name, plugin_id, order_id, parameters in EFFECT_SPECS:
+        name = f"s3g 3OA Effect {kind}"
+        templates.append((name, fixed_effect_insert_device(
+            name, plugin_name, plugin_id, order_id, parameters,
+        )))
+    templates.append(("s3g 3OA Decoder Speaker Main", speaker_main_out_device()))
+    for kind, plugin_name, plugin_id, parameters in (
+        ("Head", "s3g Ambi Decoder Head 2",
+         "org.s3g.s3g-dsp.ambisonic-head-decoder", HEAD_PARAMETERS),
+        ("Stereo", "s3g Ambi Decoder Stereo 2",
+         "org.s3g.s3g-dsp.ambisonic-stereo-decoder", STEREO_PARAMETERS),
+    ):
+        name = f"s3g 3OA Decoder {kind} Main"
+        templates.append((name, stereo_decoder_main_device(
+            name, plugin_name, plugin_id, parameters,
+        )))
+    for kind, plugin_name, plugin_id, order_id, parameters in (
+            MULTICHANNEL_DECODER_SPECS):
+        name = f"s3g 3OA Decoder {kind} Main"
+        templates.append((name, multichannel_decoder_main_device(
+            name, plugin_name, plugin_id, order_id, parameters,
+        )))
+    if len(templates) != 38 or len({name for name, _ in templates}) != 38:
+        raise ValueError("Ambi conversion template count or names changed")
+    return templates
+
+
 def main() -> None:
-    generate_s3g_routing()
-    write_device("s3g Send Stereo to 32ch Bus", multichannel_send_device())
-    write_device("s3g Send Multichannel to 32ch Bus",
-                 multichannel_to_bus_send_device())
-    write_device("s3g Send Stereo to Drum 16ch Bus", multichannel_send_device(
-        slot_count=DRUM_SLOT_COUNT, bus_prefix=DRUM_BUS_PREFIX,
-        title="s3g Send Stereo to Drum 16ch Bus",
-    ))
-    write_device("s3g Multichannel Receive", multichannel_receive_device())
+    # The packaged s3g-routing abstractions are tracked, tested artifacts.
+    # Rebuilding devices must not overwrite their proven bus handshakes from
+    # older Envelop templates; routing regeneration is an explicit task.
     write_device(
         "s3g Bus Send 36",
         multichannel_to_bus_send_device(
@@ -5125,81 +5218,27 @@ def main() -> None:
             title="s3g Bus Receive 36",
         ),
     )
-    write_device("s3g 3OA Encoder Path", path_encoder_device())
-    for name, plugin_name, plugin_id, parameters, order_id in (
-        ("s3g 3OA Encoder Point", "s3g Ambi Encoder Point 64",
-         "org.s3g.s3g-dsp.ambi-point-encoder-64", POINT_PARAMETERS, 28),
-        ("s3g 3OA Encoder Cloud", "s3g Ambi Encoder Cloud 64",
-         "org.s3g.s3g-dsp.ambi-cloud-encoder-64", CLOUD_PARAMETERS, 4),
-        ("s3g 3OA Encoder Surface Terrain",
-         "s3g Ambi Encoder Surface Terrain 64",
-         "org.s3g.s3g-dsp.ambi-terrain-navigator-64", TERRAIN_PARAMETERS, 1),
-    ):
-        write_device(name, path_encoder_device(
-            name, plugin_name, plugin_id, parameters, order_id,
-        ))
-    for name, plugin_name, plugin_id, inputs, parameters in (
-        ("s3g 3OA Encoder Cartography",
-         "s3g Ambi Encoder Cartography 64",
-         "org.s3g.s3g-dsp.ambi-cartography-encoder-64", 2,
-         CARTOGRAPHY_PARAMETERS),
-        ("s3g 3OA Encoder Ray", "s3g Ambi Encoder Ray 64",
-         "org.s3g.s3g-dsp.ambi-ray-encoder", 1, RAY_PARAMETERS),
-        ("s3g 3OA Encoder Ray Bilocation",
-         "s3g Ambi Encoder Ray Bilocation 64",
-         "org.s3g.s3g-dsp.ambi-ray-bilocation-encoder", 1,
-         RAY_BILOCATION_PARAMETERS),
-    ):
-        write_device(name, track_input_encoder_device(
-            name, plugin_name, plugin_id, inputs, parameters,
-        ))
-    for name, plugin_name, plugin_id, parameters, topology in (
-        ("s3g 3OA Encoder Modal", "s3g Ambi Encoder Modal 16",
-         "org.s3g.s3g-dsp.accelerometer-field-encoder-16",
-         MODAL_PARAMETERS, ((28, 3), (29, 0))),
-        ("s3g 3OA Encoder Medium", "s3g Ambi Encoder Medium 16",
-         "org.s3g.s3g-dsp.ambi-encoder-medium-16",
-         MEDIUM_PARAMETERS, ((1, 3),)),
-    ):
-        write_device(name, track_input_encoder_device(
-            name, plugin_name, plugin_id, 1, parameters,
-            midi_input=True, topology=topology,
-        ))
-    for (kind, plugin_name, plugin_id, order_id, midi_input,
-         parameters, topology) in INSTRUMENT_ENCODERS:
-        name = f"s3g 3OA Encoder {kind}"
-        write_device(name, instrument_encoder_device(
-            name, plugin_name, plugin_id, parameters, order_id,
-            midi_input, topology,
-        ))
-    for kind, plugin_name, plugin_id, order_id, parameters in EFFECT_SPECS:
-        name = f"s3g 3OA Effect {kind}"
-        write_device(name, fixed_effect_insert_device(
-            name, plugin_name, plugin_id, order_id, parameters,
-        ))
-    write_device("s3g 3OA Decoder Speaker Main", speaker_main_out_device())
-    for kind, plugin_name, plugin_id, parameters in (
-        ("Head", "s3g Ambi Decoder Head 2",
-         "org.s3g.s3g-dsp.ambisonic-head-decoder", HEAD_PARAMETERS),
-        ("Stereo", "s3g Ambi Decoder Stereo 2",
-         "org.s3g.s3g-dsp.ambisonic-stereo-decoder", STEREO_PARAMETERS),
-    ):
-        name = f"s3g 3OA Decoder {kind} Main"
-        write_device(name, stereo_decoder_main_device(
-            name, plugin_name, plugin_id, parameters,
-        ))
-    for kind, plugin_name, plugin_id, order_id, parameters in (
-            MULTICHANNEL_DECODER_SPECS):
-        name = f"s3g 3OA Decoder {kind} Main"
-        write_device(name, multichannel_decoder_main_device(
-            name, plugin_name, plugin_id, order_id, parameters,
-        ))
     for kind, plugin_id in PANNER_SPECS:
-        name = f"s3g Panner {kind} Main"
-        write_device(name, panner_main_device(kind, plugin_id))
+        name = f"s3g Panner {kind}"
+        write_device(name, chain_output_processor_device(
+            panner_main_device(kind, plugin_id), name,
+            f"Fixed s3g Panner {kind} 64: reads 36 slots from a preceding "
+            "s3g Bus Receive 36, processes them through its linked input gain, "
+            "and publishes speaker outputs 1–32 to the next device on this "
+            "track. Follow with s3g Main Hardware Out 32 or Bus Send 36 "
+            "(INPUT=CHAIN 36, CH=32) for a separate output track.",
+        ))
+    write_device("s3g Main Hardware Out 32", hardware_main_out_device())
     write_device("s3g Output Autogain Stereo", output_autogain_stereo_device())
-    write_device("s3g Output Autogain Quad Main",
-                 output_autogain_quad_main_device())
+    write_device("s3g Output Autogain Quad", chain_output_processor_device(
+        output_autogain_quad_main_device(), "s3g Output Autogain Quad",
+        "Reads 36 slots from a preceding s3g Bus Receive 36 and folds them "
+        "through fixed Output Autogain Quad 4. Publishes L, R, RB, LB to "
+        "same-track chain slots 1–4. Follow immediately with s3g Main "
+        "Hardware Out 32; this processor has no direct Live stereo or "
+        "hardware output.",
+        output_channels=4,
+    ))
     for (kind, primary_id, primary_name, primary_min, primary_max,
          primary_default, decay_id, decay_name, decay_min, decay_max,
          decay_default, output_id, output_default) in DRUM_INSTRUMENT_SPECS:
