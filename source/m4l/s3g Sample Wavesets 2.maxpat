@@ -2704,7 +2704,7 @@
       "layout": {},
       "searchpath": {},
       "detailsvisible": 0,
-      "amxdtype": 1835887981,
+      "amxdtype": 1768515945,
       "readonly": 0,
       "devpathtype": 0,
       "devpath": ".",

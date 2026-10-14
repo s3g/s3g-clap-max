@@ -37,4 +37,8 @@ in Live's preferences; the installer cannot change that preference.
 Some Sample plugins offer PROJECT, LINK, or EMBED storage. In Live, use LINK
 or EMBED: PROJECT does not collect audio into a Live Set. Read the
 [M4L routing guide](s3g-clap-max/docs/s3g-clap-m4l-routing.md) for the
-36-channel bus, hardware output, and MIDI-bus workflow.
+36-channel bus, hardware output, and MIDI-bus workflow. To play a Live
+instrument from Relay or Tracker, place the MIDI effect before that instrument
+on the same track. For cross-track MIDI, use **s3g MIDI Bus to Live** before
+the destination instrument and match its **MIDI IN** to the sender's optional
+**MIDI OUT**.

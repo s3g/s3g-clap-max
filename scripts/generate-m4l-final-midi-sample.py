@@ -119,13 +119,14 @@ def midi_device(name: str, plugin_id: str,
                 parameters: tuple[P, ...]) -> dict[str, object]:
     document = tracker.tracker_device(name, plugin_id, parameters)
     patch = document["patcher"]
-    patch["tags"] = "s3g CLAP fixed MIDI-only utility"
+    patch["tags"] = "s3g CLAP fixed MIDI effect"
     patch["description"] = (
         f"{name} processes Live MIDI and optional MIDI IN bus messages. "
-        "Its channel-preserving CLAP MIDI output goes to the selected MIDI "
-        "OUT bus. Matching MIDI IN and OUT bus numbers suppress MIDI output "
-        "to prevent feedback. The dummy audio outlet keeps the CLAP clock "
-        "running but is silent."
+        "Its channel-preserving CLAP MIDI output goes directly to the next "
+        "Live instrument and optionally to the selected MIDI OUT bus. "
+        "Matching MIDI IN and OUT bus numbers suppress bus output to prevent "
+        "feedback. The dummy audio outlet keeps the CLAP clock running but "
+        "is silent."
     )
     patch["digest"] = patch["description"]
     boxes = {entry["box"]["id"]: entry["box"] for entry in patch["boxes"]}

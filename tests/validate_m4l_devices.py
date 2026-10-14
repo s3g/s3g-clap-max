@@ -58,6 +58,7 @@ DEVICE_WIDTHS = {
     "s3g Multichannel Receive": 112.0,
     "s3g Bus Send 36": 648.0,
     "s3g Bus Receive 36": 267.0,
+    "s3g Bus to Live Stereo 36": 620.0,
     **{f"s3g Drum {kind}": 288.0 for kind in (
         "Kick", "Snare", "Floor Tom", "Concert Bass", "Toms",
         "Hi-Hat", "Clap", "Cowbell", "Crash", "Break",
@@ -330,6 +331,7 @@ ROUTING_DEVICES = (
     "s3g Bus Send 36",
     "s3g Bus Receive 36",
 )
+BUS_TO_LIVE_DEVICE = "s3g Bus to Live Stereo 36"
 RETIRED_ROUTING_DEVICES = (
     "s3g Send Stereo to 32ch Bus",
     "s3g Send Multichannel to 32ch Bus",
@@ -457,7 +459,7 @@ def read_amxd(path: Path) -> dict[str, object]:
     magic, version, marker, meta_chunk, meta_length, meta_flags, patch_chunk, length = (
         struct.unpack("<4sI4s4sII4sI", data[:32])
     )
-    if (magic, version, marker) != (b"ampf", 4, b"aaaa"):
+    if (magic, version) != (b"ampf", 4):
         raise ValueError(f"{path}: invalid AMXD header")
     if (meta_chunk, meta_length, meta_flags) != (b"meta", 4, 1):
         raise ValueError(f"{path}: invalid AMXD metadata chunk")
@@ -466,7 +468,15 @@ def read_amxd(path: Path) -> dict[str, object]:
     payload = data[32:]
     if len(payload) != length or not payload.endswith(b"\0"):
         raise ValueError(f"{path}: invalid AMXD payload length")
-    return json.loads(payload[:-1].decode("utf-8"))
+    document = json.loads(payload[:-1].decode("utf-8"))
+    expected_marker = {
+        1633771873: b"aaaa",  # Max Audio Effect
+        1768515945: b"iiii",  # Max Instrument
+        1835887981: b"mmmm",  # Max MIDI Effect
+    }.get(document["patcher"]["project"]["amxdtype"])
+    if marker != expected_marker:
+        raise ValueError(f"{path}: header {marker!r} disagrees with device type")
+    return document
 
 
 def validate_action_button(device: str, label: str,
@@ -871,7 +881,7 @@ def validate(name: str, expected_outputs: int, clap_prefix: str,
     if source != device:
         raise ValueError(f"{name}: editable source and packaged AMXD differ")
     patcher = source["patcher"]
-    expected_type = 1835887981 if name in INSTRUMENT_ENCODERS else 1633771873
+    expected_type = 1768515945 if name in INSTRUMENT_ENCODERS else 1633771873
     if patcher["project"]["amxdtype"] != expected_type:
         raise ValueError(f"{name}: wrong Max for Live device type")
     if patcher.get("minimum_live_version") != "12.0":
@@ -1896,6 +1906,86 @@ def validate_multichannel_bus_send(
         raise ValueError(f"{name}: calculated TO must not control audio routing")
 
 
+def validate_bus_to_live_device() -> None:
+    name = BUS_TO_LIVE_DEVICE
+    source = json.loads((SOURCE_DIR / f"{name}.maxpat").read_text(encoding="utf-8"))
+    if source != read_amxd(DEVICE_DIR / f"{name}.amxd"):
+        raise ValueError(f"{name}: Max patch and packaged device differ")
+    patcher = source["patcher"]
+    boxes = {entry["box"]["id"]: entry["box"] for entry in patcher["boxes"]}
+    connections = {
+        (tuple(entry["patchline"]["source"]),
+         tuple(entry["patchline"]["destination"]))
+        for entry in patcher["lines"]
+    }
+    if (patcher.get("devicewidth") != 620.0
+            or patcher.get("openrect") != [0.0, 0.0, 620.0, COMPACT_HEIGHT]
+            or patcher.get("locked_bgcolor") != COLOR_BACKGROUND
+            or patcher.get("dependency_cache") != []
+            or boxes["obj-plugin"].get("numoutlets") != 38
+            or boxes["obj-plugout"].get("numinlets") != 32
+            or "@chans 38" not in boxes["obj-plugin"].get("text", "")
+            or "@chans 32" not in boxes["obj-plugout"].get("text", "")):
+        raise ValueError(f"{name}: wrong 36-to-16-stereo topology")
+    if any("s3g.bus.receive" in item.get("text", "")
+           or "s3g.bus.send" in item.get("text", "")
+           for item in boxes.values()):
+        raise ValueError(f"{name}: demux must not join the bus handshake")
+    validate_control_layout(name, boxes)
+    patching_boxes = [item for object_id, item in boxes.items()
+                      if object_id != "obj-ui-background"]
+    for index, first in enumerate(patching_boxes):
+        x, y, width, height = first["patching_rect"]
+        for second in patching_boxes[index + 1:]:
+            sx, sy, sw, sh = second["patching_rect"]
+            if x < sx + sw and sx < x + width and y < sy + sh and sy < y + height:
+                raise ValueError(f"{name}: patching objects overlap: "
+                                 f"{first['id']} / {second['id']}")
+    required = {
+        (("obj-init", 0), ("obj-init-defer", 0)),
+        (("obj-init-defer", 0), ("obj-init-trigger", 0)),
+        (("obj-init-trigger", 0), ("obj-init-values", 0)),
+    }
+    for output_pair in range(16):
+        number = output_pair + 1
+        prefix = f"obj-tap-{number:02d}"
+        state = boxes[prefix]["saved_attribute_attributes"]["valueof"]
+        choices = [item for item in boxes[f"{prefix}-menu"]["items"]
+                   if item != ","]
+        if (state.get("parameter_initial") != [0 if number == 1 else number - 1]
+                or state.get("parameter_mmin") != 0
+                or state.get("parameter_mmax") != 18
+                or choices != ["OFF"] + [
+                    f"{pair * 2 - 1:02d}/{pair * 2:02d}"
+                    for pair in range(1, 19)
+                ]
+                or prefix not in patcher["parameters"]
+                or boxes[f"{prefix}-left"].get("text") !=
+                "selector~ 18 @ramptime 5."
+                or boxes[f"{prefix}-right"].get("text") !=
+                "selector~ 18 @ramptime 5."):
+            raise ValueError(f"{name}: tap {number} cannot select all input pairs")
+        required.update({
+            (("obj-init-values", 0), (prefix, 0)),
+            ((prefix, 0), (f"{prefix}-left", 0)),
+            ((prefix, 0), (f"{prefix}-right", 0)),
+            ((f"{prefix}-left", 0), ("obj-plugout", output_pair * 2)),
+            ((f"{prefix}-right", 0), ("obj-plugout", output_pair * 2 + 1)),
+        })
+        for input_pair in range(18):
+            required.update({
+                (("obj-plugin", 2 + input_pair * 2),
+                 (f"{prefix}-left", input_pair + 1)),
+                (("obj-plugin", 3 + input_pair * 2),
+                 (f"{prefix}-right", input_pair + 1)),
+            })
+    if required - connections:
+        raise ValueError(f"{name}: incomplete stereo demux or state replay")
+    if any(source[0] == "obj-plugin" and source[1] < 2
+           for source, _ in connections):
+        raise ValueError(f"{name}: ordinary Live stereo leaked into a tap")
+
+
 def validate_routing_device(name: str) -> None:
     source_path = SOURCE_DIR / f"{name}.maxpat"
     device_path = DEVICE_DIR / f"{name}.amxd"
@@ -2293,7 +2383,7 @@ def validate_drum_device(name: str) -> None:
                  f"org.s3g.s3g-dsp.drum-{slug}")
     plugin_name = name if is_mixer else f"{name} 2"
     if (patcher["project"]["amxdtype"] !=
-            (1835887981 if is_instrument else 1633771873)
+            (1768515945 if is_instrument else 1633771873)
             or boxes["obj-default-open"].get("text") !=
             f'openifempty "{plugin_name}" {plugin_id}'
             or boxes["obj-clap"].get("text") !=
@@ -2390,7 +2480,7 @@ def validate_sample_instrument(name: str) -> None:
         raise ValueError(f"{name}: source and packaged device differ")
     patcher = source["patcher"]
     width = DEVICE_WIDTHS[name]
-    if (patcher["project"]["amxdtype"] != 1835887981
+    if (patcher["project"]["amxdtype"] != 1768515945
             or patcher.get("devicewidth") != width
             or patcher.get("openrect") != [0.0, 0.0, width, COMPACT_HEIGHT]):
         raise ValueError(f"{name}: not a compact Max Instrument")
@@ -2791,11 +2881,13 @@ def main() -> int:
             raise ValueError(f"legacy device names remain in {directory}: {old_names}")
     for name in ROUTING_DEVICES:
         validate_routing_device(name)
+    validate_bus_to_live_device()
     installer = (ROOT / "scripts/install-live-devices.sh").read_text(
         encoding="utf-8"
     )
     missing_installer_devices = [
-        name for name in (*ROUTING_DEVICES, *CURRENT_AMBI_DEVICES, *DRUM_DEVICES,
+        name for name in (*ROUTING_DEVICES, BUS_TO_LIVE_DEVICE,
+                          *CURRENT_AMBI_DEVICES, *DRUM_DEVICES,
                           *SAMPLE_INSTRUMENTS, SAMPLE_CIRCULATOR,
                           *PANNER_MAIN_DEVICES, "s3g Main Hardware Out 32",
                           *OUTPUT_AUTOGAIN_DEVICES)
@@ -2991,7 +3083,7 @@ def main() -> int:
         raise ValueError("hardware routing menu is clipped or undersized")
     if selector_boxes["obj-11"].get("presentation_rect") != [0.0, 0.0, 100.0, 20.0]:
         raise ValueError("output routing menu background has unexpected bounds")
-    print(f"validated {len(CURRENT_AMBI_DEVICES) + len(ROUTING_DEVICES) + len(DRUM_DEVICES) + len(SAMPLE_INSTRUMENTS) + 2 + len(PANNER_MAIN_DEVICES) + len(OUTPUT_AUTOGAIN_DEVICES)} installed M4L devices and native s3g routing layer")
+    print(f"validated {len(CURRENT_AMBI_DEVICES) + len(ROUTING_DEVICES) + 1 + len(DRUM_DEVICES) + len(SAMPLE_INSTRUMENTS) + 2 + len(PANNER_MAIN_DEVICES) + len(OUTPUT_AUTOGAIN_DEVICES)} generated M4L devices and native s3g routing layer")
     return 0
 
 

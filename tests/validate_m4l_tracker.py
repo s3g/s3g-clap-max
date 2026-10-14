@@ -13,6 +13,8 @@ REPO = Path(__file__).resolve().parents[1]
 ROOT = Path(os.environ.get("S3G_M4L_GENERATED_ROOT", REPO))
 SOURCE = ROOT / "source" / "m4l"
 DEVICES = ROOT / "package" / "devices"
+MIDI_ONLY = {"s3g Tracker", "s3g Relay",
+             "s3g Utility NIM Gesture", "s3g Utility Neon MIDI"}
 
 
 def load(name: str) -> dict[str, object]:
@@ -68,9 +70,35 @@ def check_no_overlap(name: str, patch: dict[str, object]) -> None:
                             name, first["id"], second["id"])
 
 
+def check_direct_midi(name: str, patch: dict[str, object],
+                      boxes: dict[str, object],
+                      lines: set[tuple[str, int, str, int]]) -> None:
+    assert patch["project"]["amxdtype"] == 1835887981, name
+    assert boxes["obj-live-midi-out"]["text"] == "midiout", name
+    assert boxes["obj-live-midi-flush"]["text"] == "midiflush", name
+    assert boxes["obj-live-status-gate"]["text"] == "gate 2", name
+    required = {
+        ("obj-tracker-output-route", 0, "obj-live-event-slice", 0),
+        ("obj-live-event-slice", 1, "obj-live-event-order", 0),
+        ("obj-live-event-order", 1, "obj-live-status-unpack", 0),
+        ("obj-live-status-unpack", 0, "obj-live-status-length", 0),
+        ("obj-live-status-length", 0, "obj-live-status-gate", 0),
+        ("obj-live-event-order", 0, "obj-live-status-gate", 1),
+        ("obj-live-status-gate", 0, "obj-live-midi-bytes", 0),
+        ("obj-live-status-gate", 1, "obj-live-two-byte-slice", 0),
+        ("obj-live-two-byte-slice", 0, "obj-live-midi-bytes", 0),
+        ("obj-live-midi-bytes", 0, "obj-live-midi-flush", 0),
+        ("obj-live-midi-flush", 0, "obj-live-midi-out", 0),
+        ("obj-tracker-old-bus-panic", 0, "obj-live-midi-flush", 0),
+        ("obj-tracker-midi-panic", 0, "obj-live-midi-flush", 0),
+    }
+    assert required.issubset(lines), (name, required - lines)
+
+
 def check_tracker() -> None:
     patch = load("s3g Tracker")
     boxes, lines = graph(patch)
+    check_direct_midi("s3g Tracker", patch, boxes, lines)
     assert boxes["obj-clap"]["text"] == "s3g.clap~ 0 1"
     assert boxes["obj-clap"]["numinlets"] == 1
     assert boxes["obj-default-open"]["text"] == (
@@ -126,7 +154,9 @@ def check_receivers() -> None:
             boxes, lines = graph(patch)
         except AssertionError as error:
             raise AssertionError((source.stem, error)) from error
-        if "obj-midi-in" not in boxes:
+        if source.stem in MIDI_ONLY:
+            check_direct_midi(source.stem, patch, boxes, lines)
+        if "obj-midi-in" not in boxes or "obj-clap" not in boxes:
             assert "obj-tracker-midi-receive" not in boxes, source.stem
             continue
         count += 1

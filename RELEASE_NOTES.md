@@ -8,7 +8,8 @@ needed for Max or Ableton Live users. The separately published s3g-dsp CLAP
 plugins must still be installed first.
 
 - Include 123 dedicated s3g-dsp Max for Live plugin wrappers plus Bus Send 36,
-  Bus Receive 36, and Main Hardware Out 32. The only active s3g-dsp plugins
+  Bus Receive 36, Bus to Live Stereo 36, MIDI Bus to Live, and Main Hardware Out 32.
+  The only active s3g-dsp plugins
   without wrappers are the ten documented 64/128-channel bus processors.
 - Add Sample Neon 32 and Sample Decks 32 with 32-channel capture inputs,
   multichannel output slots, and playable face controls. Add MIDI-only Relay,
@@ -16,6 +17,14 @@ plugins must still be installed first.
 - Extend Tracker with opt-in MIDI IN, preserving channel bytes across the
   private MIDI bus. MIDI-only wrappers suppress outgoing MIDI when their input
   and output bus numbers match, preventing a self-feedback loop.
+- Add a Max MIDI Effect that bridges Relay, Tracker, and other s3g MIDI bus
+  senders to ordinary Ableton instruments. It passes Live MIDI through and
+  releases held bus notes when changing buses or pressing PANIC.
+- Classify the 48 zero-input audio generators as Max Instruments and the four
+  MIDI-only CLAP wrappers as Max MIDI Effects. The latter now send MIDI directly
+  to a following instrument on the same track; their private bus is optional.
+- Add Bus to Live Stereo 36, an end-of-chain demux with 16 independently
+  selectable Live stereo outputs covering all 18 bus input pairs.
 - Package the Max external and Live devices together with a checksum-verified
   macOS installer. It verifies the signed universal external, backs up prior
   package targets, and clears quarantine only from the staged s3g.clap~ bundle.

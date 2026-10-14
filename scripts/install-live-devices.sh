@@ -7,8 +7,10 @@ live_device_root="${S3G_LIVE_DEVICE_ROOT:-$HOME/Music/Ableton/User Library/s3g C
 
 devices=(
   "s3g Tracker.amxd"
+  "s3g MIDI Bus to Live.amxd"
   "s3g Bus Send 36.amxd"
   "s3g Bus Receive 36.amxd"
+  "s3g Bus to Live Stereo 36.amxd"
   "s3g Ambi Encoder Path.amxd"
   "s3g Ambi Encoder Point.amxd"
   "s3g Ambi Encoder Cloud.amxd"
@@ -145,6 +147,7 @@ for device in "${devices[@]}"; do
     python3 -B "$repo_dir/scripts/generate-m4l-output-tools.py"
     python3 -B "$repo_dir/scripts/generate-m4l-final-midi-sample.py"
     python3 -B "$repo_dir/scripts/generate-m4l-tracker.py"
+    python3 -B "$repo_dir/scripts/generate-m4l-midi-to-live.py"
     break
   fi
 done

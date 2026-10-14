@@ -11,7 +11,7 @@
     "rect": [
       120.0,
       90.0,
-      2490.0,
+      3190.0,
       1200.0
     ],
     "openrect": [
@@ -50,9 +50,9 @@
     "toptoolbarpinned": 0,
     "righttoolbarpinned": 0,
     "bottomtoolbarpinned": 0,
-    "description": "MIDI-only CLAP. Its channel-addressed output is sent to a selected private s3g MIDI bus; the audio outlet is silent but keeps the CLAP process clock active. The bus defaults to OFF. Tracker MIDI bus is opt-in and preserves channels.",
-    "digest": "MIDI-only CLAP. Its channel-addressed output is sent to a selected private s3g MIDI bus; the audio outlet is silent but keeps the CLAP process clock active. The bus defaults to OFF. Tracker MIDI bus is opt-in and preserves channels.",
-    "tags": "s3g CLAP MIDI sequencer",
+    "description": "MIDI-only CLAP. Channel-addressed MIDI goes directly to the next Live instrument; optional MIDI OUT also sends to a private s3g bus. The silent audio outlet keeps the CLAP process clock active. The bus defaults to OFF. Tracker MIDI bus is opt-in and preserves channels.",
+    "digest": "MIDI-only CLAP. Channel-addressed MIDI goes directly to the next Live instrument; optional MIDI OUT also sends to a private s3g bus. The silent audio outlet keeps the CLAP process clock active. The bus defaults to OFF. Tracker MIDI bus is opt-in and preserves channels.",
+    "tags": "s3g CLAP MIDI effect sequencer",
     "latency": 0,
     "minimum_live_version": "12.0",
     "minimum_max_version": "8.5",
@@ -761,6 +761,172 @@
       },
       {
         "box": {
+          "id": "obj-live-event-slice",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2200,
+            100,
+            80,
+            22.0
+          ],
+          "text": "zl slice 2",
+          "numinlets": 2,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-event-order",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2200,
+            160,
+            48,
+            22.0
+          ],
+          "text": "t l l",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-status-unpack",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2400,
+            220,
+            90,
+            22.0
+          ],
+          "text": "unpack i i i",
+          "numinlets": 1,
+          "numoutlets": 3,
+          "outlettype": [
+            "",
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-status-length",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2400,
+            280,
+            345,
+            22.0
+          ],
+          "text": "expr (($i1 >= 128) && ($i1 <= 239)) + (($i1 >= 192) && ($i1 <= 223))",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-status-gate",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2200,
+            340,
+            62,
+            22.0
+          ],
+          "text": "gate 2",
+          "numinlets": 2,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-two-byte-slice",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2400,
+            400,
+            80,
+            22.0
+          ],
+          "text": "zl slice 2",
+          "numinlets": 2,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-midi-bytes",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2200,
+            460,
+            45,
+            22.0
+          ],
+          "text": "iter",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-midi-flush",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2200,
+            520,
+            78,
+            22.0
+          ],
+          "text": "midiflush",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-live-midi-out",
+          "maxclass": "newobj",
+          "patching_rect": [
+            2200,
+            580,
+            70,
+            22.0
+          ],
+          "text": "midiout",
+          "numinlets": 1,
+          "numoutlets": 0,
+          "outlettype": []
+        }
+      },
+      {
+        "box": {
           "id": "obj-plugsync",
           "maxclass": "newobj",
           "patching_rect": [
@@ -1253,7 +1419,7 @@
           "id": "obj-tracker-midi-bus-number",
           "maxclass": "live.numbox",
           "patching_rect": [
-            2150,
+            2850,
             80.0,
             58.0,
             22.0
@@ -1336,7 +1502,7 @@
           "id": "obj-tracker-midi-bus-number-menu",
           "maxclass": "umenu",
           "patching_rect": [
-            2150,
+            2850,
             138.0,
             58.0,
             20.0
@@ -1424,7 +1590,7 @@
           "id": "obj-tracker-midi-bus-number-menu-to-value",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             196.0,
             38.0,
             22.0
@@ -1442,7 +1608,7 @@
           "id": "obj-tracker-midi-bus-number-value-to-menu",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             254.0,
             38.0,
             22.0
@@ -1460,7 +1626,7 @@
           "id": "obj-tracker-midi-bus-number-menu-set",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             312.0,
             78.0,
             22.0
@@ -1478,7 +1644,7 @@
           "id": "obj-tracker-midi-bus-label",
           "maxclass": "comment",
           "patching_rect": [
-            2150,
+            2850,
             370.0,
             58.0,
             20.0
@@ -1510,7 +1676,7 @@
           "id": "obj-tracker-midi-receive",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             428.0,
             80,
             22.0
@@ -1528,7 +1694,7 @@
           "id": "obj-tracker-midi-symbol",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             486.0,
             220,
             22.0
@@ -1546,7 +1712,7 @@
           "id": "obj-tracker-midi-set",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             544.0,
             90,
             22.0
@@ -1564,7 +1730,7 @@
           "id": "obj-tracker-midi-change",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             602.0,
             60,
             22.0
@@ -1582,7 +1748,7 @@
           "id": "obj-tracker-midi-switch",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             660.0,
             60,
             22.0
@@ -1601,7 +1767,7 @@
           "id": "obj-tracker-midi-panic",
           "maxclass": "message",
           "patching_rect": [
-            2150,
+            2850,
             718.0,
             80,
             22
@@ -1619,7 +1785,7 @@
           "id": "obj-tracker-midi-bus-replay-delay",
           "maxclass": "newobj",
           "patching_rect": [
-            2150,
+            2850,
             776.0,
             76,
             22.0
@@ -1637,7 +1803,7 @@
           "id": "obj-tracker-midi-bus-replay",
           "maxclass": "message",
           "patching_rect": [
-            2150,
+            2850,
             834.0,
             92,
             22
@@ -1696,6 +1862,138 @@
           ],
           "destination": [
             "obj-tracker-prepend",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-output-route",
+            0
+          ],
+          "destination": [
+            "obj-live-event-slice",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-event-slice",
+            1
+          ],
+          "destination": [
+            "obj-live-event-order",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-event-order",
+            1
+          ],
+          "destination": [
+            "obj-live-status-unpack",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-status-unpack",
+            0
+          ],
+          "destination": [
+            "obj-live-status-length",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-status-length",
+            0
+          ],
+          "destination": [
+            "obj-live-status-gate",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-event-order",
+            0
+          ],
+          "destination": [
+            "obj-live-status-gate",
+            1
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-status-gate",
+            0
+          ],
+          "destination": [
+            "obj-live-midi-bytes",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-status-gate",
+            1
+          ],
+          "destination": [
+            "obj-live-two-byte-slice",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-two-byte-slice",
+            0
+          ],
+          "destination": [
+            "obj-live-midi-bytes",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-midi-bytes",
+            0
+          ],
+          "destination": [
+            "obj-live-midi-flush",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-live-midi-flush",
+            0
+          ],
+          "destination": [
+            "obj-live-midi-out",
             0
           ]
         }
@@ -1768,6 +2066,18 @@
           ],
           "destination": [
             "obj-tracker-forward",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-old-bus-panic",
+            0
+          ],
+          "destination": [
+            "obj-live-midi-flush",
             0
           ]
         }
@@ -2620,6 +2930,18 @@
           ],
           "destination": [
             "obj-tracker-midi-bus-number",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-tracker-midi-panic",
+            0
+          ],
+          "destination": [
+            "obj-live-midi-flush",
             0
           ]
         }

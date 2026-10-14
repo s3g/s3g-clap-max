@@ -2,15 +2,17 @@
 
 The installed Ambisonic wrappers are the **s3g Ambi …** devices. The only
 multichannel cross-track transport is **s3g Bus Send 36 / Bus Receive 36**;
-**s3g Main Hardware Out 32** is the separate hardware endpoint.
+**s3g Main Hardware Out 32** is the separate hardware endpoint, and
+**s3g Bus to Live Stereo 36** breaks a 36-channel chain into ordinary Live
+stereo track inputs.
 
 ## Channel-preserving MIDI bus
 
-**s3g Tracker** is a MIDI-only CLAP hosted as a Max Instrument; its silent
-audio outlet keeps its process clock running. Put it on a MIDI track, open
-**EDITOR** to program its tracks, and choose a nonzero **MIDI OUT** (01–16).
-Choose the same **MIDI IN** number (labeled **MIDI BUS** on some earlier
-wrappers) in one or more MIDI-capable s3g instrument wrappers.
+**s3g Tracker**, Relay, Utility NIM Gesture, and Utility Neon MIDI are Max
+MIDI Effects. Put one before an instrument on the same track for direct MIDI
+output. Open Tracker's **EDITOR** to program its tracks. To send to other
+tracks as well, choose a nonzero **MIDI OUT** (01–16), then choose that number
+as **MIDI IN** in one or more MIDI-capable s3g instrument wrappers.
 Each wrapper defaults to **OFF** and can still receive Live MIDI normally.
 Within each receiving CLAP, use its own MIDI receive-channel setting to
 select the Tracker lane; the bus passes the original channel nibble through
@@ -21,8 +23,34 @@ for the receiving instrument. If MIDI IN and MIDI OUT match on a MIDI-only
 device, the wrapper suppresses its MIDI output to avoid feedback. This MIDI
 bus is separate from
 **Bus Send/Receive 36**, which
-carries audio only. It also does not send notes into ordinary Live MIDI
-tracks or record them into Live MIDI clips.
+carries audio only. A private bus number does not itself appear as a Live MIDI
+track input; use **s3g MIDI Bus to Live** when the destination is an ordinary
+Live instrument on another track.
+
+### Send Relay or Tracker to a Live instrument on another track
+
+For a single-track chain, place Relay or Tracker before the Live instrument;
+no bus or bridge is needed. To route across tracks:
+
+1. Place Relay or Tracker on its own MIDI track. Select **MIDI OUT = 01** (or
+   another unused number) and make it generate notes.
+2. On the destination MIDI track, place **s3g MIDI Bus to Live** *before* the
+   Ableton instrument, then select **MIDI IN = 01** on the bridge. The bridge
+   is a Max MIDI Effect, not an instrument. Its default **OFF** receives no bus.
+3. Use Live's normal track monitoring to hear the destination instrument.
+   Incoming Live MIDI also passes through the bridge. Press **PANIC** if notes
+   remain held; switching the bridge bus also flushes held notes.
+
+The bridge accepts channel-voice MIDI from Relay, Tracker, or the other s3g
+MIDI utilities. It ignores CLAP port numbers and sample offsets: the Max bus
+hop is scheduler-timed, not sample-accurate. The private bus preserves status
+bytes up to the bridge, but Live's own channel routing and the destination
+instrument determine whether MIDI channels remain distinct. Live's **MIDI
+From** chooser may tap before device-generated MIDI, so use the private bus
+bridge when the track chooser does not capture the generated output.
+To record generated MIDI as a Live clip, route the bridge's post-effect MIDI
+into another track and record there; recording directly on the bridge track
+may capture only its pre-effect input.
 
 Changing a Tracker bus resets voices on the old destination; changing a
 receiver's bus resets that receiver. Avoid changing bus numbers during a
@@ -83,6 +111,18 @@ it. Changing Receive's BUS clears the old bus's sender output assignments
 and resets their remembered destination before announcing the new bus. A
 nonmatching bus should therefore be silent, while selecting the original bus
 again should reconnect its Sends.
+
+**s3g Bus to Live Stereo 36** is a terminal demux after Bus Receive 36 or a
+36-channel processor on that same track. It does not create another numbered
+bus receiver, so it cannot compete for the bus ACK. Each of its 16 **OUT**
+menus selects one of the 18 bus stereo pairs, or OFF. OUT 01/02 defaults OFF;
+OUT 03/04 through OUT 31/32 initially map bus pairs 01/02 through 29/30.
+To use a tap, create a Live audio track, choose the demux track in **Audio
+From**, choose the corresponding device output pair, and set Monitor to **In**.
+Route or mute the demux track's own main stereo output as appropriate. Live's
+16-stereo-output limit means only 16 pairs can be exposed simultaneously, but
+the menus can select all 36 input channels, including pairs 33/34 and 35/36.
+Put any further multichannel effect before this terminal device.
 
 The **s3g Ambi …** wrappers use this explicit bus. They have no hidden
 receive or send bus and no MAIN/NEXT switch. Their same-track

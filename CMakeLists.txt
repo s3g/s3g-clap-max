@@ -37,6 +37,8 @@ if(Python3_Interpreter_FOUND)
       "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-final-midi-sample.py"
     COMMAND "${Python3_EXECUTABLE}" -B
       "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-tracker.py"
+    COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_LIST_DIR}/scripts/generate-m4l-midi-to-live.py"
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
     COMMENT "Generating s3g Max for Live devices")
   if(BUILD_TESTING)
@@ -67,6 +69,12 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME s3g_m4l_tracker_validation
       COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_tracker.py")
+    add_test(NAME s3g_m4l_device_type_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_device_types.py")
+    add_test(NAME s3g_m4l_midi_to_live_validation
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_midi_to_live.py")
   endif()
 endif()
 

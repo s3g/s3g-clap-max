@@ -2137,8 +2137,10 @@ def fit_presentation_width(
 def patcher(title: str, description: str, boxes: list[dict[str, object]],
             lines: list[dict[str, object]], with_route: bool,
             presentation_height: float = COMPACT_DEVICE_HEIGHT,
-            *, instrument: bool = False,
+            *, instrument: bool = False, midi_effect: bool = False,
             minimum_width: float = 0.0) -> dict[str, object]:
+    if instrument and midi_effect:
+        raise ValueError("a Live device cannot be both instrument and MIDI effect")
     presentation_width = fit_presentation_width(boxes, minimum_width)
     parameters: dict[str, object] = {
         "obj-clap-state": ["CLAP State", "CLAP State", 0],
@@ -2205,7 +2207,8 @@ def patcher(title: str, description: str, boxes: list[dict[str, object]],
                 "layout": {},
                 "searchpath": {},
                 "detailsvisible": 0,
-                "amxdtype": 1835887981 if instrument else 1633771873,
+                "amxdtype": (1768515945 if instrument else
+                             1835887981 if midi_effect else 1633771873),
                 "readonly": 0,
                 "devpathtype": 0,
                 "devpath": ".",
@@ -3017,6 +3020,121 @@ def multichannel_receive_device(
                if slot_count == FIFTH_ORDER_SLOT_COUNT else {}),
         },
     )
+
+
+def bus_to_live_stereo_device() -> dict[str, object]:
+    """End-of-chain 36-slot demux, without joining the bus ACK handshake.
+
+    Live exposes at most 16 stereo sub-outputs from one device. Each output
+    pair can select any of the 18 input pairs, so fifth-order slots 33-36
+    remain reachable even though all 18 pairs cannot be tapped at once.
+    """
+    pair_count = FIFTH_ORDER_SLOT_COUNT // 2
+    output_pairs = 16
+    boxes = multichannel_device_ui()
+    lines: list[dict[str, object]] = []
+    parameters: dict[str, list[object]] = {}
+    boxes.extend([
+        new_object("obj-plugin", "plugin~ " + " ".join(
+            str(channel) for channel in range(1, FIFTH_ORDER_LIVE_CHANNELS + 1)
+        ) + f" @chans {FIFTH_ORDER_LIVE_CHANNELS}",
+                   80.0, 100.0, 620.0, FIFTH_ORDER_LIVE_CHANNELS,
+                   FIFTH_ORDER_LIVE_CHANNELS,
+                   ["signal"] * FIFTH_ORDER_LIVE_CHANNELS),
+        new_object("obj-plugout", "plugout~ " + " ".join(
+            str(channel) for channel in range(1, output_pairs * 2 + 1)
+        ) + f" @chans {output_pairs * 2}",
+                   80.0, 1120.0, 620.0, output_pairs * 2,
+                   output_pairs * 2, ["signal"] * (output_pairs * 2)),
+        new_object("obj-init", "loadbang", 1800.0, 1070.0, 70.0,
+                   1, 1, ["bang"]),
+        new_object("obj-init-defer", "deferlow", 1800.0, 1110.0, 70.0,
+                   1, 1),
+        new_object("obj-init-trigger", "t b", 1800.0, 1150.0, 38.0,
+                   1, 1, ["bang"]),
+        box("obj-init-values", "message", [1800.0, 1190.0, 85.0, 22.0],
+            text="outputvalue"),
+    ])
+    lines.extend([
+        line("obj-init", 0, "obj-init-defer", 0),
+        line("obj-init-defer", 0, "obj-init-trigger", 0),
+        line("obj-init-trigger", 0, "obj-init-values", 0),
+    ])
+    labels = ["OFF"] + [
+        f"{2 * pair - 1:02d}/{2 * pair:02d}"
+        for pair in range(1, pair_count + 1)
+    ]
+    for output_pair in range(output_pairs):
+        number = output_pair + 1
+        column, row = output_pair % 4, output_pair // 4
+        face_x = 12.0 + column * 152.0
+        face_y = 10.0 + row * 36.0
+        patch_x = 820.0 + column * 420.0
+        patch_y = 80.0 + row * 220.0
+        prefix = f"obj-tap-{number:02d}"
+        initial = 0 if number == 1 else number - 1
+        boxes.append(box(
+            f"{prefix}-label", "comment",
+            [patch_x, patch_y, 76.0, CONTROL_HEIGHT],
+            text=f"OUT {2 * number - 1:02d}/{2 * number:02d}",
+            presentation_rect=[face_x, face_y, 76.0, CONTROL_HEIGHT],
+            fontname=UI_FONT, fontsize=UI_FONT_SIZE, textcolor=COLOR_DIM,
+        ))
+        controls = routing_menu_controls(
+            prefix, f"Live Tap {number:02d} Pair", f"Tap {number:02d}",
+            0, pair_count, initial, face_x + 78.0, width=62.0,
+            y=face_y, labels=labels,
+        )
+        for control in controls:
+            item = control["box"]
+            object_id = item["id"]
+            x_offset, y_offset = {
+                prefix: (0.0, 35.0),
+                f"{prefix}-menu": (100.0, 35.0),
+                f"{prefix}-menu-to-value": (100.0, 75.0),
+                f"{prefix}-value-to-menu": (0.0, 75.0),
+                f"{prefix}-menu-set": (0.0, 115.0),
+            }[object_id]
+            item["patching_rect"][:2] = [patch_x + x_offset,
+                                         patch_y + y_offset]
+        boxes.extend(controls)
+        boxes.extend([
+            new_object(f"{prefix}-left", f"selector~ {pair_count} @ramptime 5.",
+                       patch_x + 170.0, patch_y + 125.0, 160.0,
+                       pair_count + 1, 1, ["signal"]),
+            new_object(f"{prefix}-right", f"selector~ {pair_count} @ramptime 5.",
+                       patch_x + 170.0, patch_y + 160.0, 160.0,
+                       pair_count + 1, 1, ["signal"]),
+        ])
+        parameters[prefix] = [f"Live Tap {number:02d} Pair", f"Tap {number:02d}", 0]
+        lines.extend(routing_menu_lines(prefix))
+        lines.extend([
+            line("obj-init-values", 0, prefix, 0),
+            line(prefix, 0, f"{prefix}-left", 0),
+            line(prefix, 0, f"{prefix}-right", 0),
+            line(f"{prefix}-left", 0, "obj-plugout", output_pair * 2),
+            line(f"{prefix}-right", 0, "obj-plugout", output_pair * 2 + 1),
+        ])
+        for input_pair in range(pair_count):
+            for side, suffix in enumerate(("left", "right")):
+                lines.append(line("obj-plugin", 2 + input_pair * 2 + side,
+                                  f"{prefix}-{suffix}", input_pair + 1))
+    document = routing_device_patcher(
+        "s3g Bus to Live Stereo 36",
+        "Terminal 36-channel chain demux. Place after Bus Receive 36 or a "
+        "36-channel processor. Each of 16 Live stereo outputs selects one "
+        "of 18 input bus pairs, or OFF; the first output defaults OFF to "
+        "avoid an unintended main stereo feed. This device does not join "
+        "or alter the numbered s3g bus handshake.",
+        boxes, lines, parameters,
+    )
+    patch = document["patcher"]
+    patch["rect"] = [120.0, 90.0, 3220.0, 1320.0]
+    patch["dependency_cache"] = []
+    background = next(entry["box"] for entry in boxes
+                      if entry["box"]["id"] == "obj-ui-background")
+    background["patching_rect"][:2] = [2550.0, 40.0]
+    return document
 
 
 def source_device() -> dict[str, object]:
@@ -5042,9 +5160,22 @@ def arrange_ambi36_debug_view(name: str, document: dict[str, object]) -> None:
         raise ValueError(f"{name}: unplaced debug-view objects: {sorted(missing)}")
 
 
-def write_device(name: str, document: dict[str, object], *, arrange: bool = True) -> None:
+def write_device(name: str, document: dict[str, object], *, arrange: bool = True,
+                 device_type: bytes | None = None) -> None:
     if arrange:
         arrange_ambi36_debug_view(name, document)
+    embedded_type = document["patcher"]["project"]["amxdtype"]
+    expected_type = {
+        1633771873: b"aaaa",  # Max Audio Effect
+        1768515945: b"iiii",  # Max Instrument
+        1835887981: b"mmmm",  # Max MIDI Effect
+    }.get(embedded_type)
+    if expected_type is None:
+        raise ValueError(f"Unsupported Max for Live device type: {embedded_type!r}")
+    if device_type is not None and device_type != expected_type:
+        raise ValueError(f"AMXD header {device_type!r} disagrees with Max project "
+                         f"device type {expected_type!r}")
+    device_type = expected_type
     SOURCE_DIR.mkdir(parents=True, exist_ok=True)
     DEVICE_DIR.mkdir(parents=True, exist_ok=True)
     text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
@@ -5056,7 +5187,7 @@ def write_device(name: str, document: dict[str, object], *, arrange: bool = True
         "<4sI4s4sII4sI",
         b"ampf",
         4,
-        b"aaaa",
+        device_type,
         b"meta",
         4,
         1,
@@ -5218,6 +5349,8 @@ def main() -> None:
             title="s3g Bus Receive 36",
         ),
     )
+    write_device("s3g Bus to Live Stereo 36", bus_to_live_stereo_device(),
+                 arrange=False)
     for kind, plugin_id in PANNER_SPECS:
         name = f"s3g Panner {kind}"
         write_device(name, chain_output_processor_device(

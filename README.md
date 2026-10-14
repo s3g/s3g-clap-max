@@ -121,15 +121,19 @@ The current installer includes dedicated wrappers for these 123 s3g-dsp plugins
   Lanes 2/32, Motion 2/32, Player 2/16, Rings 8, Slicer 2/16,
   Neon 32, Wavesets 2/32.
 
-The installer also includes **s3g Bus Send 36**, **s3g Bus Receive 36**, and
-the CLAP-free **s3g Main Hardware Out 32**. Other
+The installer also includes **s3g Bus Send 36**, **s3g Bus Receive 36**,
+**s3g Bus to Live Stereo 36**, **s3g MIDI Bus to Live**, and the CLAP-free
+**s3g Main Hardware Out 32**. Other
 plugins in the
 [s3g-dsp plugin index](https://s3g.github.io/s3g-dsp/plugin-index.html)
 do not yet have dedicated M4L wrappers, though `s3g.clap~` can host them in Max.
 
-For Tracker or a MIDI utility, choose a nonzero **MIDI OUT** bus (1–16), then
-choose that number as **MIDI IN** (or **MIDI BUS** on earlier wrappers) on a
-receiving device. The default **OFF** disconnects it. Tracker now also has an
+Tracker, Relay, Utility NIM Gesture, and Utility Neon MIDI are Max MIDI Effects.
+Place one before an Ableton instrument on the same MIDI track for direct MIDI
+output. Its optional **MIDI OUT** bus (1–16) sends to other tracks: choose the
+same number as **MIDI IN** on a receiving s3g device, or on **s3g MIDI Bus to
+Live** before an ordinary Live instrument. The default **OFF** disconnects the
+private bus; it does not disable the same-track MIDI output. Tracker also has an
 opt-in MIDI IN bus so Utility Neon MIDI can feed Tracker; give Tracker a
 different MIDI OUT bus to reach an instrument. If a MIDI-only device's IN and
 OUT are set to the same bus, its outgoing MIDI is suppressed to prevent a
@@ -138,6 +142,12 @@ editor as needed. This private bus preserves MIDI status/channel bytes; it is
 separate from Live's inter-track MIDI routing and the 36-channel audio bus.
 For more detail and timing caveats, see
 [the M4L routing guide](package/docs/s3g-clap-m4l-routing.md).
+
+For cross-track MIDI, put **s3g MIDI Bus to Live** before the destination
+instrument and select the sender's MIDI OUT number in the bridge's **MIDI IN**
+menu. The bridge merges private-bus MIDI with the track's incoming Live MIDI.
+**PANIC** releases held bus notes. No bridge is needed on the sender's own
+track.
 
 Spectral Spray 2 is a normal stereo insert. Delay Field takes Live stereo input
 and puts its 16 outputs in multichannel chain slots 1–16. Follow it with
@@ -233,9 +243,9 @@ sound. Neon's PLAY auditions a pad; Decks' A PLAY/B PLAY address its default
 Beatpad 2 mode. KILL stops sounding voices. Their
 editor state is saved with the Set. Use LINK or EMBED for media storage.
 
-Relay, Utility NIM Gesture, and Utility Neon MIDI are MIDI-only: their silent
-audio outlets keep CLAP processing active, while MIDI OUT carries their
-channel-preserving MIDI. Utility Neon MIDI can drive Tracker through its MIDI
+Relay, Utility NIM Gesture, and Utility Neon MIDI are MIDI effects: they send
+channel-preserving MIDI directly to the next instrument and can also send it
+to their optional private MIDI OUT bus. Utility Neon MIDI can drive Tracker through its MIDI
 IN bus, or play a Sample wrapper directly. For a Reloop NEON on macOS, choose
 the utility's direct USB input to avoid Live rewriting hardware MIDI channels.
 NIM Gesture can send its control stream to No Input Mixer over the private
@@ -273,6 +283,17 @@ Ambisonics. Use a different bus number for each cross-track stage; multiple
 Sends can feed one Receive on a bus. To feed a multichannel-input encoder,
 place another Send/Receive pair *before* it. Same-track Ambi effects can sit
 between the encoder and Send without another bus pair.
+
+To break out bus channels as ordinary Live stereo tracks, put **s3g Bus to
+Live Stereo 36** at the end of the receiver/processor track. Its 16 **OUT**
+menus choose any of the 18 incoming bus pairs (or **OFF**); OUT 01/02 starts
+OFF to avoid an unintended main-track feed. For each tap, create a Live audio
+track, select the demux track and the desired device output pair in **Audio
+From**, and set monitoring to **In**. This device does not select a BUS itself:
+it uses the 36 auxiliary channels from the preceding Bus Receive or wrapper.
+It is a terminal output device, so put further multichannel processors before
+it. Live can expose at most 16 stereo outputs from one device; remap a menu
+to reach bus pairs 17 or 18.
 
 The same explicit pair also feeds the Panners, Output Autogain, and Drum
 Mixer 16: put **Bus Receive 36** immediately before the wrapper. Follow a

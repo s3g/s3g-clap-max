@@ -63,7 +63,7 @@ def bus_replay(prefix: str, trigger: str = "obj-device") -> tuple[
 
 def tracker_device(name: str = TRACKER_NAME, plugin_id: str = TRACKER_ID,
                    parameters: tuple[base.FixedParameter, ...] = ()) -> dict[str, object]:
-    """A Max Instrument so a zero-audio-output CLAP still gets DSP ticks."""
+    """A Live MIDI effect with direct output and an optional private bus."""
     boxes = base.common_ui(False, base.COMPACT_DEVICE_HEIGHT,
                            allow_plugin_picker=False)
     clap = base.clap_box("s3g.clap~ 0 1", 40, 270, 0, 1)
@@ -103,6 +103,29 @@ def tracker_device(name: str = TRACKER_NAME, plugin_id: str = TRACKER_ID,
                         220, 1, 1),
         base.new_object("obj-tracker-bus-address", "prepend send",
                         800, 265, 96, 1, 1),
+        # Live's MIDI chain can consume these events on the same track. Keep
+        # the private numbered bus independently available for cross-track
+        # routing and Tracker's channel-preserving receiver workflows.
+        base.new_object("obj-live-event-slice", "zl slice 2",
+                        2200, 100, 80, 2, 2),
+        base.new_object("obj-live-event-order", "t l l",
+                        2200, 160, 48, 1, 2),
+        base.new_object("obj-live-status-unpack", "unpack i i i",
+                        2400, 220, 90, 1, 3),
+        base.new_object("obj-live-status-length",
+                        "expr (($i1 >= 128) && ($i1 <= 239)) + "
+                        "(($i1 >= 192) && ($i1 <= 223))",
+                        2400, 280, 345, 1, 1),
+        base.new_object("obj-live-status-gate", "gate 2",
+                        2200, 340, 62, 2, 2),
+        base.new_object("obj-live-two-byte-slice", "zl slice 2",
+                        2400, 400, 80, 2, 2),
+        base.new_object("obj-live-midi-bytes", "iter",
+                        2200, 460, 45, 1, 1),
+        base.new_object("obj-live-midi-flush", "midiflush",
+                        2200, 520, 78, 1, 1),
+        base.new_object("obj-live-midi-out", "midiout",
+                        2200, 580, 70, 1, 0),
     ])
     runtime_boxes, runtime_lines = base.common_runtime(
         1, name, allow_plugin_picker=False,
@@ -119,6 +142,19 @@ def tracker_device(name: str = TRACKER_NAME, plugin_id: str = TRACKER_ID,
         base.line("obj-clap", 0, "obj-plugout", 1),
         base.line("obj-clap", 1, "obj-tracker-output-route", 0),
         base.line("obj-tracker-output-route", 0, "obj-tracker-prepend", 0),
+        base.line("obj-tracker-output-route", 0, "obj-live-event-slice", 0),
+        base.line("obj-live-event-slice", 1, "obj-live-event-order", 0),
+        # The right branch chooses two or three MIDI bytes before the left
+        # branch forwards the CLAP event to Live's MIDI-effect outlet.
+        base.line("obj-live-event-order", 1, "obj-live-status-unpack", 0),
+        base.line("obj-live-status-unpack", 0, "obj-live-status-length", 0),
+        base.line("obj-live-status-length", 0, "obj-live-status-gate", 0),
+        base.line("obj-live-event-order", 0, "obj-live-status-gate", 1),
+        base.line("obj-live-status-gate", 0, "obj-live-midi-bytes", 0),
+        base.line("obj-live-status-gate", 1, "obj-live-two-byte-slice", 0),
+        base.line("obj-live-two-byte-slice", 0, "obj-live-midi-bytes", 0),
+        base.line("obj-live-midi-bytes", 0, "obj-live-midi-flush", 0),
+        base.line("obj-live-midi-flush", 0, "obj-live-midi-out", 0),
         base.line("obj-tracker-prepend", 0, "obj-tracker-gate", 1),
         base.line("obj-tracker-gate", 0, "obj-tracker-forward", 0),
         base.line("obj-tracker-bus-number", 0, "obj-tracker-bus-change", 0),
@@ -128,6 +164,8 @@ def tracker_device(name: str = TRACKER_NAME, plugin_id: str = TRACKER_ID,
                   "obj-tracker-old-bus-panic", 0),
         base.line("obj-tracker-old-bus-panic", 0,
                   "obj-tracker-forward", 0),
+        base.line("obj-tracker-old-bus-panic", 0,
+                  "obj-live-midi-flush", 0),
         base.line("obj-tracker-bus-switch", 0,
                   "obj-tracker-bus-order", 0),
         # trigger fires right-to-left: address the bus before opening its gate
@@ -146,13 +184,14 @@ def tracker_device(name: str = TRACKER_NAME, plugin_id: str = TRACKER_ID,
     ]
     document = base.patcher(
         name,
-        "MIDI-only CLAP. Its channel-addressed output is sent to a "
-        "selected private s3g MIDI bus; the audio outlet is silent but keeps "
-        "the CLAP process clock active. The bus defaults to OFF.",
-        boxes, lines, False, instrument=True,
+        "MIDI-only CLAP. Channel-addressed MIDI goes directly to the next "
+        "Live instrument; optional MIDI OUT also sends to a private s3g "
+        "bus. The silent audio outlet keeps the CLAP process clock active. "
+        "The bus defaults to OFF.",
+        boxes, lines, False, midi_effect=True,
         minimum_width=base.DRUM_SAMPLE_MINIMUM_WIDTH,
     )
-    document["patcher"]["tags"] = "s3g CLAP MIDI sequencer"
+    document["patcher"]["tags"] = "s3g CLAP MIDI effect sequencer"
     document["patcher"]["parameters"]["obj-tracker-bus-number"] = [
         "Tracker MIDI Bus", "TRK Bus", 0,
     ]
@@ -185,6 +224,15 @@ def arrange_tracker_debug(document: dict[str, object]) -> None:
         "obj-tracker-bus-safe": (680, 740),
         "obj-tracker-bus-symbol": (780, 620),
         "obj-tracker-bus-address": (780, 680),
+        "obj-live-event-slice": (2200, 100),
+        "obj-live-event-order": (2200, 160),
+        "obj-live-status-unpack": (2400, 220),
+        "obj-live-status-length": (2400, 280),
+        "obj-live-status-gate": (2200, 340),
+        "obj-live-two-byte-slice": (2400, 400),
+        "obj-live-midi-bytes": (2200, 460),
+        "obj-live-midi-flush": (2200, 520),
+        "obj-live-midi-out": (2200, 580),
         "obj-tracker-bus-number": (680, 260),
         "obj-tracker-bus-number-menu": (780, 260),
         "obj-tracker-bus-number-menu-to-value": (880, 320),
@@ -227,13 +275,13 @@ def arrange_tracker_debug(document: dict[str, object]) -> None:
         raise ValueError(f"Tracker layout missed {sorted(set(boxes) - set(positions))}")
     for object_id, (x, y) in positions.items():
         boxes[object_id]["patching_rect"][:2] = [x, y]
-    patch["rect"] = [120.0, 90.0, 2350.0, 1200.0]
+    patch["rect"] = [120.0, 90.0, 2850.0, 1200.0]
 
 
 def augment_receiver(name: str, document: dict[str, object]) -> None:
     patch = document["patcher"]
     boxes = {entry["box"]["id"]: entry["box"] for entry in patch["boxes"]}
-    if "obj-midi-in" not in boxes:
+    if "obj-midi-in" not in boxes or "obj-clap" not in boxes:
         return
     if "obj-tracker-midi-bus-number" in boxes:
         return
@@ -294,6 +342,9 @@ def augment_receiver(name: str, document: dict[str, object]) -> None:
         base.line("obj-tracker-midi-receive", 0, "obj-clap", 0),
         *replay_lines,
     ])
+    if "obj-live-midi-flush" in boxes:
+        patch["lines"].append(base.line(
+            "obj-tracker-midi-panic", 0, "obj-live-midi-flush", 0))
     if "obj-tracker-bus-pair" in boxes:
         patch["lines"].append(base.line(
             f"{prefix}-number", 0, "obj-tracker-bus-pair", 1))
@@ -319,8 +370,9 @@ def main() -> None:
         if path.stem == TRACKER_NAME:
             continue
         document = json.loads(path.read_text(encoding="utf-8"))
-        if not any(entry["box"]["id"] == "obj-midi-in"
-                   for entry in document["patcher"]["boxes"]):
+        object_ids = {entry["box"]["id"]
+                      for entry in document["patcher"]["boxes"]}
+        if "obj-midi-in" not in object_ids or "obj-clap" not in object_ids:
             continue
         augment_receiver(path.stem, document)
         base.write_device(path.stem, document, arrange=False)
