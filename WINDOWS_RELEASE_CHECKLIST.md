@@ -3,7 +3,15 @@
 The experimental Windows ZIP is a candidate, not evidence that Max for Live
 works on Windows. Keep the artifact unpublished until the exact archive passes
 native testing. The macOS ZIP must also be rebuilt from the same final commit
-before a joint 0.7.0 release.
+before a joint 0.7.0 release. The v0.5.0 DSP-start crash was traced to the
+`multichanneloutputs` callback reporting zero channels for ordinary signal
+outlets; the correction is in the 0.7.0 source, but must be checked in the
+exact release archive.
+
+The user reports that a separately built 0.7.0 external passed native Windows
+Max tests with DSP running unloaded and with a CLAP processing audio. The
+external in the rebuilt release ZIP has not been tested in Max. This also does
+not cover Max for Live, so the exact-archive gates below remain open.
 
 ## Automated candidate gates
 
@@ -27,6 +35,10 @@ separate build or a mix of old and new devices.
 - [ ] On Windows x64 with Max 9, install the complete s3g-dsp Windows CLAP
   prerelease and the extracted s3g-clap-max ZIP using `INSTALL-WINDOWS.md`.
   Confirm Max finds the external and the plugin from a clean launch.
+- [ ] Run `tests/windows_max_dsp.md` against the external from that exact ZIP:
+  first an unloaded `s3g.clap~` connected to `dac~` with DSP on for at least a
+  minute and two stop/start cycles, then a loaded stereo CLAP with audio and
+  its editor. Record the archive and installed external SHA-256 hashes.
 - [ ] In standalone Max, load a simple s3g CLAP plugin, open and close its
   editor, pass audio or MIDI, and save/restore state without a crash.
 - [ ] In Ableton Live with Max for Live, load a Drum instrument, a stereo
