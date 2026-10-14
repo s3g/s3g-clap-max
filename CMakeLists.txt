@@ -9,6 +9,12 @@ endif()
 
 project(s3g_clap_max VERSION 0.7.0 LANGUAGES CXX)
 
+if(WIN32)
+  # Windows headers otherwise define min/max macros that break std::min,
+  # std::max, and numeric_limits::max in the native MSVC build.
+  add_compile_definitions(NOMINMAX)
+endif()
+
 if(APPLE)
   enable_language(OBJCXX)
 endif()
