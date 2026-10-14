@@ -1,6 +1,7 @@
 # Install s3g-clap-max on macOS
 
-This download contains the universal `s3g.clap~` Max 9 external and all s3g
+This guide applies to release `0.7.0` or later. Its macOS download contains
+the universal `s3g.clap~` Max 9 external and all s3g
 Max for Live devices. You do **not** need CMake or a source checkout. The
 [s3g-dsp CLAP plugins](https://github.com/s3g/s3g-dsp/releases) are a separate
 download; install those first. For the Live devices, you also need Ableton
@@ -42,3 +43,23 @@ instrument from Relay or Tracker, place the MIDI effect before that instrument
 on the same track. For cross-track MIDI, use **s3g MIDI Bus to Live** before
 the destination instrument and match its **MIDI IN** to the sender's optional
 **MIDI OUT**.
+
+## Windows x64 (experimental)
+
+The current Max for Live device set has an experimental Windows x64 package,
+but Windows Max and Live acceptance is still pending. Use only a matching
+`0.7.0` or later Windows ZIP. The older 0.5.0 ZIP has no Live devices and its
+external must not be mixed with these devices. The s3g-dsp Windows CLAP
+collection is a separate experimental download.
+
+If a matching Windows ZIP is published, quit Live and Max before replacing
+files. Extract it and copy the complete `s3g-clap-max` folder into
+`%USERPROFILE%\Documents\Max 9\Packages\`. Copy its `devices\*.amxd`
+files to a real `s3g CLAP` folder inside Live's selected User Library. Put the
+complete s3g-dsp Windows CLAP collection under
+`%LOCALAPPDATA%\Programs\Common\CLAP\s3g-dsp`, keeping its `.clap` files
+beside the shared `Resources` folder; this is a per-user CLAP path searched by
+the Max host. Restart both applications and verify with a disposable Set.
+There is no Windows installer in the macOS release archive, and Windows Max
+for Live behavior still needs native validation. See
+[INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for detailed manual steps.

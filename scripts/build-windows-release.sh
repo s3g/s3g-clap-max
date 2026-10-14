@@ -38,11 +38,24 @@ if [ ! -f "$external" ]; then
 fi
 
 nm_program="${S3G_CLAP_MAX_NM:-x86_64-w64-mingw32-nm}"
-if command -v "$nm_program" >/dev/null 2>&1; then
-  if ! "$nm_program" -g "$external" | grep -q ' ext_main$'; then
-    echo "Windows external does not export ext_main: $external" >&2
-    exit 1
-  fi
+if ! command -v "$nm_program" >/dev/null 2>&1; then
+  echo "Windows export inspection tool not found: $nm_program" >&2
+  exit 1
+fi
+if ! "$nm_program" -g "$external" | grep -q ' ext_main$'; then
+  echo "Windows external does not export ext_main: $external" >&2
+  exit 1
+fi
+
+objdump_program="${S3G_CLAP_MAX_OBJDUMP:-x86_64-w64-mingw32-objdump}"
+if ! command -v "$objdump_program" >/dev/null 2>&1; then
+  echo "Windows import inspection tool not found: $objdump_program" >&2
+  exit 1
+fi
+if "$objdump_program" -p "$external" \
+    | grep -Eiq 'DLL Name: (libstdc\+\+|libgcc|libwinpthread)'; then
+  echo "Windows external depends on an unbundled MinGW runtime DLL" >&2
+  exit 1
 fi
 
 echo "Built Windows x64 Max external at: $external"

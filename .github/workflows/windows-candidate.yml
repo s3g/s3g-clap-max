@@ -1,0 +1,50 @@
+name: Windows x64 candidate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  native-build:
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Configure native MSVC x64 build
+        run: cmake --preset windows-msvc
+      - name: Build Max external and device generators
+        run: cmake --build --preset windows-msvc --parallel 4
+      - name: Run native state codec and device validation
+        run: >-
+          ctest --test-dir build-windows-msvc -C Release
+          --output-on-failure --no-tests=error
+          -R "^(s3g_m4l_|s3g_clap_state_codec_test$)"
+      - name: Verify x64 Windows external exists
+        shell: pwsh
+        run: |
+          $path = 'package/externals/s3g.clap~.mxe64'
+          if (-not (Test-Path -LiteralPath $path)) { throw "Missing $path" }
+          $resolved = (Resolve-Path -LiteralPath $path).Path
+          $bytes = [System.IO.File]::ReadAllBytes($resolved)
+          if ($bytes.Length -lt 64 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) {
+            throw 'Invalid DOS header'
+          }
+          $peOffset = [System.BitConverter]::ToInt32($bytes, 0x3c)
+          if ($peOffset -lt 0 -or $peOffset + 24 -gt $bytes.Length) {
+            throw 'Invalid PE offset'
+          }
+          if ($bytes[$peOffset] -ne 0x50 -or $bytes[$peOffset + 1] -ne 0x45 -or
+              $bytes[$peOffset + 2] -ne 0 -or $bytes[$peOffset + 3] -ne 0) {
+            throw 'Invalid PE header'
+          }
+          if ([System.BitConverter]::ToUInt16($bytes, $peOffset + 4) -ne 0x8664) {
+            throw 'External is not Windows x64'
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: s3g-clap-max-windows-native-candidate
+          path: package/externals/s3g.clap~.mxe64
+          if-no-files-found: error

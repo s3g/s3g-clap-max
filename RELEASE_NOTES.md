@@ -1,40 +1,57 @@
 # s3g-clap-max release notes
 
-## v0.7.0 — 2026-10-13
+## v0.7.0 — 2026-10-14
 
-This release provides a downloadable universal macOS Max 9 package and a
-self-contained installer. A source checkout and CMake build are no longer
-needed for Max or Ableton Live users. The separately published s3g-dsp CLAP
-plugins must still be installed first.
+Max 9 and Ableton Live can now use the s3g-dsp CLAP collection through a
+downloadable `s3g.clap~` package. Install the separately published s3g-dsp
+CLAP plugins first. The macOS download includes a self-contained installer;
+the Windows x64 download has manual installation instructions.
 
-- Include 123 dedicated s3g-dsp Max for Live plugin wrappers plus Bus Send 36,
-  Bus Receive 36, Bus to Live Stereo 36, MIDI Bus to Live, and Main Hardware Out 32.
-  The only active s3g-dsp plugins
-  without wrappers are the ten documented 64/128-channel bus processors.
-- Add Sample Neon 32 and Sample Decks 32 with 32-channel capture inputs,
-  multichannel output slots, and playable face controls. Add MIDI-only Relay,
-  Utility NIM Gesture, and Utility Neon MIDI wrappers.
-- Extend Tracker with opt-in MIDI IN, preserving channel bytes across the
-  private MIDI bus. MIDI-only wrappers suppress outgoing MIDI when their input
-  and output bus numbers match, preventing a self-feedback loop.
-- Add a Max MIDI Effect that bridges Relay, Tracker, and other s3g MIDI bus
-  senders to ordinary Ableton instruments. It passes Live MIDI through and
-  releases held bus notes when changing buses or pressing PANIC.
-- Classify the 48 zero-input audio generators as Max Instruments and the four
-  MIDI-only CLAP wrappers as Max MIDI Effects. The latter now send MIDI directly
-  to a following instrument on the same track; their private bus is optional.
-- Add Bus to Live Stereo 36, an end-of-chain demux with 16 independently
-  selectable Live stereo outputs covering all 18 bus input pairs.
-- Package the Max external and Live devices together with a checksum-verified
-  macOS installer. It verifies the signed universal external, backs up prior
-  package targets, and clears quarantine only from the staged s3g.clap~ bundle.
-- Update installation and routing guidance for the current explicit 36-channel
-  bus, 32-channel hardware output, state recall, and Live automation workflow.
+### Max for Live
 
-The macOS package is not notarized. Verify the download and approve the
-installer through macOS Privacy & Security only if you trust its source.
-The release installer does not disable Gatekeeper or modify s3g-dsp CLAP
-bundles.
+- Add 123 dedicated s3g-dsp plugin wrappers and five routing devices: Bus
+  Send 36, Bus Receive 36, Bus to Live Stereo 36, MIDI Bus to Live, and Main
+  Hardware Out 32. The Windows archive has 122 wrappers because the matching
+  Windows s3g-dsp collection does not include Ambi Energy 64.
+- Use explicit 36-channel audio send/receive buses for cross-track processing,
+  a separate 32-channel hardware-out device, and stereo demux back to Live.
+  The routing namespace is independent of Envelop for Live.
+- Add Drum and Sample instruments, including the 32-channel Neon and Decks
+  devices, plus Tracker, Relay, Utility NIM Gesture, and Utility Neon MIDI.
+  MIDI-only wrappers can feed a following Live instrument on the same track;
+  MIDI Bus to Live bridges their optional private bus between tracks.
+- Preserve CLAP plugin state with Live Sets and expose selected wrapper
+  parameters to Live automation. Sample PROJECT storage does not collect
+  audio into a Live Project; choose LINK or EMBED where supported.
+- Leave the ten 64/128-channel bus processors without dedicated wrappers;
+  they exceed the current Live routing profile. See the README for the full
+  wrapper list and routing examples.
+
+### Fixes and compatibility
+
+- Correct `s3g.clap~`'s Windows/Max DSP outlet metadata. Ordinary signal
+  outlets now report one channel instead of zero, addressing the crash when
+  starting DSP with the older v0.5.0 Windows external. A native Max 9.2.0
+  comparison isolated this cause; the exact v0.7.0 Windows archive still needs
+  native Max and Live acceptance before Windows support can be called verified.
+- Reduce audio dropouts when moving CLAP editor parameters in Live by keeping
+  ordinary editor notifications outside the audio-engine lock and avoiding
+  allocations while sorting queued events in the audio callback. The
+  previously observed LF Synth 2 slider clicks and lock-skipped warnings
+  stopped in the tested macOS Live session. First-time editor opening may
+  still cause a brief interruption while audio is running.
+- Correct Live tempo forwarding: `plugsync~` supplies BPM, so Tracker now
+  reads 120 BPM at a 120 BPM Live tempo instead of 22,050.
+- Fix MIDI-only CLAP processing and retain MIDI channel bytes across the
+  private bus. Matching MIDI input/output bus numbers suppress self-feedback;
+  PANIC on MIDI Bus to Live releases held bus notes.
+
+The macOS package is not notarized. Its installer verifies file checksums
+and the signed universal external, backs up existing package targets, and
+clears quarantine only on its staged `s3g.clap~` bundle. It does not disable
+Gatekeeper or modify s3g-dsp CLAP bundles. The Windows archive is experimental:
+cross-build and archive validation do not substitute for running the exact
+download in native Max 9 and Ableton Live with Max for Live.
 
 ## v0.6.0 — 2026-10-01
 
