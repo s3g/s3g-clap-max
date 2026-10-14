@@ -8,8 +8,8 @@ CLAP plugin is missing; in that case it cannot load or open its editor.
 
 ## Install
 
-For macOS, download the prebuilt
-[s3g-clap-max release](https://github.com/s3g/s3g-clap-max/releases), unzip
+For macOS, download a current published release (`0.7.0` or later) from the
+[s3g-clap-max releases page](https://github.com/s3g/s3g-clap-max/releases), unzip
 it, and run **Install s3g-clap-max.command**. No source checkout, CMake, or
 compiler is needed. Install the separate
 [s3g-dsp CLAP release](https://s3g.github.io/s3g-dsp/installing-plugins.html)
@@ -24,33 +24,32 @@ the `s3g.clap~` code signature, then clears quarantine only on its staged
 external bundle. It does not disable Gatekeeper or change the s3g-dsp CLAP
 installation. Quit Max and Live before installing, then restart them.
 
-To build and install from a source checkout instead, use:
+The release installer makes independent copies, so the extracted download can
+be removed afterward. If your Live User Library is elsewhere, set
+`S3G_LIVE_DEVICE_ROOT` to its `s3g CLAP` folder as described in
+[INSTALL.md](INSTALL.md). If no current macOS asset is listed on the releases
+page, that package has not yet been published.
 
-```sh
-./scripts/build-release.sh
-./scripts/install-local-package.sh
-./scripts/install-live-devices.sh  # If you use Ableton Live
-```
+### Windows x64 (experimental)
 
-Those development installers link into Max's Packages folder and hard-link
-the Live devices from the checkout. The release installer instead makes
-independent copies, so you can remove the downloaded folder afterward. If
-your Live User Library is elsewhere, set `S3G_LIVE_DEVICE_ROOT` to its
-`s3g CLAP` folder when running either installer.
+The [s3g-dsp Windows CLAP prerelease](https://github.com/s3g/s3g-dsp/releases)
+is available. An experimental s3g-clap-max Windows x64 candidate is prepared,
+but Windows Max and Live have not yet validated it. Use only a matching `0.7.0`
+or later experimental Windows release ZIP; the older 0.5.0 ZIP has no Live devices
+and its external must not be mixed with the current devices.
+The Windows ZIP omits the Ambi Energy wrapper because that CLAP is Mac-only.
 
-On Windows, the current workflow remains experimental. Build with Visual
-Studio 2022 and CMake:
-
-```powershell
-cmake --preset windows-msvc
-cmake --build --preset windows-msvc
-```
-
-Install the s3g-dsp Windows CLAP package separately, then copy `package` to
-`%USERPROFILE%\Documents\Max 9\Packages\s3g-clap-max`. For Live, copy the
-`.amxd` files you want from `package\devices` into a normal folder in your
-User Library. The Live installation script above is for macOS; the s3g-dsp
-Windows package and its Live workflow remain experimental.
+If a matching Windows ZIP appears on the s3g-clap-max releases page, quit
+Max and Live, extract it, and copy the complete `s3g-clap-max` folder to
+`%USERPROFILE%\Documents\Max 9\Packages\s3g-clap-max`. Copy its
+`devices\*.amxd` files into a real `s3g CLAP` folder in Live's User Library.
+Install the s3g-dsp Windows CLAPs separately under
+`%LOCALAPPDATA%\Programs\Common\CLAP\s3g-dsp`, keeping the `.clap` files
+and shared `Resources` folder together so the Max host can find them. Restart
+Max and Live, then test in a disposable Set. There is no Windows installer in
+the macOS package; Windows Max for Live use remains experimental. See
+[INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for the complete manual steps and
+backup guidance.
 
 ## Use in Max
 

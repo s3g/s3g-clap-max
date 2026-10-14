@@ -75,6 +75,9 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME s3g_m4l_midi_to_live_validation
       COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_LIST_DIR}/tests/validate_m4l_midi_to_live.py")
+    add_test(NAME s3g_m4l_windows_release_device_validation
+      COMMAND "${Python3_EXECUTABLE}" -B
+        "${CMAKE_CURRENT_LIST_DIR}/tests/validate_windows_release_devices.py")
   endif()
 endif()
 

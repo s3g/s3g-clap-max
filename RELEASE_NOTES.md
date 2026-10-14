@@ -7,6 +7,13 @@ self-contained installer. A source checkout and CMake build are no longer
 needed for Max or Ableton Live users. The separately published s3g-dsp CLAP
 plugins must still be installed first.
 
+An experimental Windows x64 archive is also prepared with the current
+Max external, Live devices, checksums, and manual installation guide. It is a
+candidate until tested in native Windows Max 9 and Ableton Live; cross-build
+and archive checks alone do not establish Windows host compatibility. It omits
+the Ambi Energy M4L wrapper because the s3g-dsp Windows CLAP release excludes
+that plugin.
+
 - Include 123 dedicated s3g-dsp Max for Live plugin wrappers plus Bus Send 36,
   Bus Receive 36, Bus to Live Stereo 36, MIDI Bus to Live, and Main Hardware Out 32.
   The only active s3g-dsp plugins
