@@ -1064,21 +1064,21 @@ void transportSyncMessage(MaxClap* object, t_symbol*, long argc,
     if (!implementation || argc < 7 || !argv) return;
     TrackedEngineLock lock(implementation, "transport update");
     const double sampleRate = implementation->sampleRate;
-    const double samplesPerBeat = atom_getfloat(argv + 3);
+    // Live/Max 9 reports BPM from plugsync~ outlet 6 (verified in Live 12.4.6).
+    // Treat the fourth transportsync field as BPM, not samples per beat.
+    const double beatsPerMinute = atom_getfloat(argv + 3);
     const t_atom_long flags = atom_getlong(argv + 6);
     s3g::max_host::ClapTransportState transport;
     transport.available = true;
     transport.hasBeatsTimeline = (flags & 2) != 0;
     transport.hasTimeSignature = (flags & 4) != 0;
-    transport.hasTempo = (flags & 8) != 0 && sampleRate > 0.0
-        && samplesPerBeat > 0.0;
+    transport.hasTempo = (flags & 8) != 0 && beatsPerMinute > 0.0;
     transport.hasSecondsTimeline = (flags & 1) != 0 && sampleRate > 0.0;
     transport.playing = (flags & 16) != 0 && atom_getlong(argv) != 0;
     transport.songBeats = atom_getfloat(argv + 1);
     transport.songSeconds = transport.hasSecondsTimeline
         ? atom_getfloat(argv + 2) / sampleRate : 0.0;
-    transport.tempo = transport.hasTempo
-        ? sampleRate * 60.0 / samplesPerBeat : 120.0;
+    transport.tempo = transport.hasTempo ? beatsPerMinute : 120.0;
     transport.timeSignatureNumerator = static_cast<uint16_t>(
         std::clamp<t_atom_long>(atom_getlong(argv + 4), 1, 65535));
     transport.timeSignatureDenominator = static_cast<uint16_t>(
