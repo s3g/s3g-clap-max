@@ -8,10 +8,10 @@ before a joint 0.7.0 release. The v0.5.0 DSP-start crash was traced to the
 outlets; the correction is in the 0.7.0 source, but must be checked in the
 exact release archive.
 
-The user reports that a current 0.7.0 build passed native Windows Max tests
-with DSP running unloaded and with a CLAP processing audio. Whether that
-binary came from the rebuilt release ZIP has not yet been established. This
-does not cover Max for Live, so the exact-archive gates below remain open.
+The user reports that a separately built 0.7.0 external passed native Windows
+Max tests with DSP running unloaded and with a CLAP processing audio. The
+external in the rebuilt release ZIP has not been tested in Max. This also does
+not cover Max for Live, so the exact-archive gates below remain open.
 
 ## Automated candidate gates
 
