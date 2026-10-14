@@ -1,7 +1,7 @@
 {
   "name": "s3g-clap-max",
   "displayname": "s3g CLAP Host",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "author": "s3g",
   "description": "A native Max/MSP CLAP host with fixed CLAP wrappers and multichannel Max for Live routing devices.",
   "tags": ["audio", "clap", "plugin", "msp", "max for live", "multichannel", "ambisonics"],

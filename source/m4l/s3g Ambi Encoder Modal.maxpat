@@ -1697,7 +1697,7 @@
             58.0,
             20.0
           ],
-          "text": "MIDI BUS",
+          "text": "MIDI IN",
           "presentation": 1,
           "presentation_rect": [
             84.0,

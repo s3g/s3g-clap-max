@@ -17,11 +17,11 @@
     "openrect": [
       0.0,
       0.0,
-      212.0,
+      268.0,
       169.0
     ],
     "openinpresentation": 1,
-    "devicewidth": 212.0,
+    "devicewidth": 268.0,
     "default_fontsize": 12.0,
     "default_fontface": 0,
     "default_fontname": "Arial",
@@ -64,14 +64,14 @@
           "patching_rect": [
             0.0,
             0.0,
-            212.0,
+            268.0,
             169.0
           ],
           "presentation": 1,
           "presentation_rect": [
             0.0,
             0.0,
-            212.0,
+            268.0,
             169.0
           ],
           "numinlets": 1,
@@ -1416,7 +1416,7 @@
             58.0,
             20.0
           ],
-          "text": "MIDI BUS",
+          "text": "MIDI IN",
           "presentation": 1,
           "presentation_rect": [
             84.0,

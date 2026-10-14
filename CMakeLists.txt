@@ -7,7 +7,7 @@ if(APPLE)
       "Minimum macOS version for the universal Max external")
 endif()
 
-project(s3g_clap_max VERSION 0.6.0 LANGUAGES CXX)
+project(s3g_clap_max VERSION 0.7.0 LANGUAGES CXX)
 
 if(APPLE)
   enable_language(OBJCXX)

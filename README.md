@@ -8,35 +8,38 @@ CLAP plugin is missing; in that case it cannot load or open its editor.
 
 ## Install
 
-Install in this order:
+For macOS, download the prebuilt
+[s3g-clap-max release](https://github.com/s3g/s3g-clap-max/releases), unzip
+it, and run **Install s3g-clap-max.command**. No source checkout, CMake, or
+compiler is needed. Install the separate
+[s3g-dsp CLAP release](https://s3g.github.io/s3g-dsp/installing-plugins.html)
+first; the Live devices contain neither the CLAP plugins nor the `s3g.clap~`
+external. You need Max 9, and Ableton Live with Max for Live to use the
+`.amxd` devices. See the [downloadable package's install guide](INSTALL.md)
+for Gatekeeper approval, target folders, backups, and custom User Libraries.
 
-1. Install the [s3g-dsp CLAP plugins](https://s3g.github.io/s3g-dsp/installing-plugins.html)
-   first. On macOS the packaged installer places them in
-   `~/Library/Audio/Plug-Ins/CLAP/s3g-dsp/`. Keep each complete `.clap` bundle
-   there; `.amxd` devices do not contain the plugins.
-2. Install Max 9. For the Live devices, also use a version of Ableton Live
-   with Max for Live. Building this Max package from source requires CMake and
-   a C++ compiler.
-3. Install the `s3g-clap-max` Max package and, if using Live, its `.amxd`
-   devices as described below.
+The installer copies the Max package to `~/Documents/Max 9/Packages` and the
+Live devices to **User Library → s3g CLAP**. It verifies the release files and
+the `s3g.clap~` code signature, then clears quarantine only on its staged
+external bundle. It does not disable Gatekeeper or change the s3g-dsp CLAP
+installation. Quit Max and Live before installing, then restart them.
 
-On macOS, from a checkout of this repository:
+To build and install from a source checkout instead, use:
 
 ```sh
 ./scripts/build-release.sh
 ./scripts/install-local-package.sh
-./scripts/install-live-devices.sh  # Only if you use Ableton Live
+./scripts/install-live-devices.sh  # If you use Ableton Live
 ```
 
-The Max package is linked into `~/Documents/Max 9/Packages`. The Live devices
-appear under **User Library → s3g CLAP**. The Live installer uses hard links
-because Live may not index symlinks in the User Library; the repository and
-User Library must be on the same filesystem. If your User Library is elsewhere,
-set `S3G_LIVE_DEVICE_ROOT` to its intended `s3g CLAP` folder before running
-the Live installer. Restart Max and Live after installing or rebuilding the
-external.
+Those development installers link into Max's Packages folder and hard-link
+the Live devices from the checkout. The release installer instead makes
+independent copies, so you can remove the downloaded folder afterward. If
+your Live User Library is elsewhere, set `S3G_LIVE_DEVICE_ROOT` to its
+`s3g CLAP` folder when running either installer.
 
-On Windows, build with Visual Studio 2022 and CMake:
+On Windows, the current workflow remains experimental. Build with Visual
+Studio 2022 and CMake:
 
 ```powershell
 cmake --preset windows-msvc

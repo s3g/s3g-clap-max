@@ -211,6 +211,64 @@
       },
       {
         "box": {
+          "id": "obj-clap",
+          "maxclass": "newobj",
+          "patching_rect": [
+            40,
+            270,
+            310.0,
+            22.0
+          ],
+          "text": "s3g.clap~ 0 2",
+          "numinlets": 1,
+          "numoutlets": 3,
+          "outlettype": [
+            "signal",
+            "signal",
+            "list"
+          ],
+          "varname": "clap"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-plugout",
+          "maxclass": "newobj",
+          "patching_rect": [
+            40,
+            380,
+            110,
+            22.0
+          ],
+          "text": "plugout~ 1 2",
+          "numinlets": 2,
+          "numoutlets": 2,
+          "outlettype": [
+            "signal",
+            "signal"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-device",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1550,
+            100,
+            125,
+            22.0
+          ],
+          "text": "s3g.live.thisdevice",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
           "id": "obj-play-button",
           "maxclass": "live.text",
           "patching_rect": [
@@ -301,7 +359,7 @@
             1.0
           ],
           "rounded": 2.0,
-          "annotation": "Audition the loaded sound or start its transport.",
+          "annotation": "Audition the sound or start its transport.",
           "annotation_name": "PLAY"
         }
       },
@@ -431,64 +489,6 @@
           ],
           "text": "killvoices",
           "numinlets": 2,
-          "numoutlets": 1,
-          "outlettype": [
-            ""
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-clap",
-          "maxclass": "newobj",
-          "patching_rect": [
-            40,
-            270,
-            310.0,
-            22.0
-          ],
-          "text": "s3g.clap~ 0 2",
-          "numinlets": 1,
-          "numoutlets": 3,
-          "outlettype": [
-            "signal",
-            "signal",
-            "list"
-          ],
-          "varname": "clap"
-        }
-      },
-      {
-        "box": {
-          "id": "obj-plugout",
-          "maxclass": "newobj",
-          "patching_rect": [
-            40,
-            380,
-            110,
-            22.0
-          ],
-          "text": "plugout~ 1 2",
-          "numinlets": 2,
-          "numoutlets": 2,
-          "outlettype": [
-            "signal",
-            "signal"
-          ]
-        }
-      },
-      {
-        "box": {
-          "id": "obj-device",
-          "maxclass": "newobj",
-          "patching_rect": [
-            1550,
-            100,
-            125,
-            22.0
-          ],
-          "text": "s3g.live.thisdevice",
-          "numinlets": 1,
           "numoutlets": 1,
           "outlettype": [
             ""
@@ -1430,7 +1430,7 @@
             58.0,
             20.0
           ],
-          "text": "MIDI BUS",
+          "text": "MIDI IN",
           "presentation": 1,
           "presentation_rect": [
             228.0,
@@ -1599,54 +1599,6 @@
       }
     ],
     "lines": [
-      {
-        "patchline": {
-          "source": [
-            "obj-play-button",
-            0
-          ],
-          "destination": [
-            "obj-play-message",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-play-message",
-            0
-          ],
-          "destination": [
-            "obj-clap",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-kill-button",
-            0
-          ],
-          "destination": [
-            "obj-kill-message",
-            0
-          ]
-        }
-      },
-      {
-        "patchline": {
-          "source": [
-            "obj-kill-message",
-            0
-          ],
-          "destination": [
-            "obj-clap",
-            0
-          ]
-        }
-      },
       {
         "patchline": {
           "source": [
@@ -2288,6 +2240,54 @@
           "source": [
             "obj-midi-parse",
             7
+          ],
+          "destination": [
+            "obj-clap",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-play-button",
+            0
+          ],
+          "destination": [
+            "obj-play-message",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-play-message",
+            0
+          ],
+          "destination": [
+            "obj-clap",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-kill-button",
+            0
+          ],
+          "destination": [
+            "obj-kill-message",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-kill-message",
+            0
           ],
           "destination": [
             "obj-clap",
