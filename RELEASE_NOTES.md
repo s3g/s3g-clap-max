@@ -32,8 +32,11 @@ the Windows x64 download has manual installation instructions.
 - Correct `s3g.clap~`'s Windows/Max DSP outlet metadata. Ordinary signal
   outlets now report one channel instead of zero, addressing the crash when
   starting DSP with the older v0.5.0 Windows external. A native Max 9.2.0
-  comparison isolated this cause; the exact v0.7.0 Windows archive still needs
-  native Max and Live acceptance before Windows support can be called verified.
+  comparison isolated this cause. The current v0.7.0 build has also passed
+  user-reported native Windows Max tests with DSP running both unloaded and
+  with a CLAP processing audio. The exact release ZIP's identity and its Max
+  for Live behavior remain to be verified before Windows support can be
+  called fully tested.
 - Reduce audio dropouts when moving CLAP editor parameters in Live by keeping
   ordinary editor notifications outside the audio-engine lock and avoiding
   allocations while sorting queued events in the audio callback. The
@@ -49,9 +52,9 @@ the Windows x64 download has manual installation instructions.
 The macOS package is not notarized. Its installer verifies file checksums
 and the signed universal external, backs up existing package targets, and
 clears quarantine only on its staged `s3g.clap~` bundle. It does not disable
-Gatekeeper or modify s3g-dsp CLAP bundles. The Windows archive is experimental:
-cross-build and archive validation do not substitute for running the exact
-download in native Max 9 and Ableton Live with Max for Live.
+Gatekeeper or modify s3g-dsp CLAP bundles. The Windows archive remains
+experimental until the exact download and its Max for Live devices pass native
+acceptance; successful tests of a separate build do not establish that result.
 
 ## v0.6.0 — 2026-10-01
 
