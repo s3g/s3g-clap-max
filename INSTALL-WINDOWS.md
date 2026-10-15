@@ -30,3 +30,6 @@ Keep the old folders until the new installation works. If a device appears in
 Live but its plugin does not open, check the two install locations above and
 look for an error in Max Console. The Windows package omits the Ambi Energy
 device because that plugin is not in the Windows s3g-dsp collection.
+
+For MIDI, multichannel audio, and hardware-output routing, start with the
+[visual M4L routing guide](https://github.com/s3g/s3g-clap-max/blob/main/package/docs/s3g-clap-m4l-visual-guide.md).

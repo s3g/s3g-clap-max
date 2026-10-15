@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 480" role="img" aria-labelledby="title description">
+  <title id="title">Direct MIDI and numbered MIDI bus routing in Ableton Live</title>
+  <desc id="description">Top row: Relay or Tracker directly feeds the next Live instrument on the same track, regardless of MIDI OUT. Bottom row: a numbered MIDI OUT bus reaches a MIDI Bus to Live bridge before an instrument on another track.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #151a1e; }
+      .track { fill: #242c31; stroke: #445158; stroke-width: 1.5; }
+      .device { fill: #3a454b; stroke: #7b8b93; stroke-width: 1.5; }
+      .bridge { fill: #385057; stroke: #64c6bf; stroke-width: 1.5; }
+      .label { fill: #e7ebed; font-family: Arial, sans-serif; font-size: 19px; font-weight: 600; }
+      .small { fill: #c1cbd0; font-family: Arial, sans-serif; font-size: 15px; }
+      .title { fill: #f4f5f5; font-family: Arial, sans-serif; font-size: 27px; font-weight: 700; }
+      .track-label { fill: #aebec6; font-family: Arial, sans-serif; font-size: 16px; font-weight: 600; }
+      .direct-text { fill: #9ce0dc; font-family: Arial, sans-serif; font-size: 16px; font-weight: 600; }
+      .bus-text { fill: #f3c889; font-family: Arial, sans-serif; font-size: 16px; font-weight: 600; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1100" height="480" rx="18"/>
+  <text class="title" x="36" y="45">MIDI OUT adds a route; it does not replace the same-track route</text>
+
+  <rect class="track" x="30" y="75" width="1040" height="165" rx="14"/>
+  <text class="track-label" x="54" y="105">SAME MIDI TRACK</text>
+  <rect class="device" x="55" y="125" width="280" height="86" rx="10"/>
+  <text class="label" x="75" y="157">s3g Relay or Tracker</text>
+  <text class="small" x="75" y="185">MIDI OUT = OFF or 01–16</text>
+  <rect x="345" y="167" width="315" height="4" fill="#64c6bf"/>
+  <polygon points="660,169 646,161 646,177" fill="#64c6bf"/>
+  <text class="direct-text" x="410" y="151">Direct MIDI</text>
+  <rect class="device" x="675" y="125" width="355" height="86" rx="10"/>
+  <text class="label" x="698" y="157">Live instrument</text>
+  <text class="small" x="698" y="185">Sounds from the direct path</text>
+
+  <rect class="track" x="30" y="265" width="1040" height="180" rx="14"/>
+  <text class="track-label" x="54" y="295">DIFFERENT MIDI TRACKS</text>
+  <rect class="device" x="55" y="320" width="280" height="90" rx="10"/>
+  <text class="label" x="75" y="352">s3g Relay or Tracker</text>
+  <text class="small" x="75" y="380">MIDI OUT = 01</text>
+  <rect x="345" y="363" width="110" height="4" fill="#f3b966"/>
+  <polygon points="455,365 441,357 441,373" fill="#f3b966"/>
+  <text class="bus-text" x="348" y="339">Bus 01</text>
+  <rect class="bridge" x="470" y="320" width="250" height="90" rx="10"/>
+  <text class="label" x="490" y="352">MIDI Bus to Live</text>
+  <text class="small" x="490" y="380">MIDI IN = 01</text>
+  <rect x="730" y="363" width="35" height="4" fill="#64c6bf"/>
+  <polygon points="765,365 751,357 751,373" fill="#64c6bf"/>
+  <rect class="device" x="780" y="320" width="250" height="90" rx="10"/>
+  <text class="label" x="800" y="352">Live instrument</text>
+  <text class="small" x="800" y="380">On destination track</text>
+  <text class="small" x="55" y="433">Use a separate sender track if you want only the remote instrument to sound.</text>
+</svg>

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 700" role="img" aria-labelledby="title description">
+  <title id="title">Stereo source through an Ambisonic encoder and decoder to hardware</title>
+  <desc id="description">Three separate Live tracks. Track A sends stereo to audio bus 01. Track B receives bus 01, encodes with Ambi Encoder Path, and sends 36 chain slots to bus 02. Track C receives bus 02, decodes with Ambi Decoder Speaker, then routes up to 32 mono channels through Main Hardware Out.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #151a1e; }
+      .track { fill: #242c31; stroke: #445158; stroke-width: 1.5; }
+      .device { fill: #3a454b; stroke: #7b8b93; stroke-width: 1.5; }
+      .endpoint { fill: #385057; stroke: #64c6bf; stroke-width: 1.5; }
+      .title { fill: #f4f5f5; font-family: Arial, sans-serif; font-size: 27px; font-weight: 700; }
+      .track-label { fill: #c0ccd2; font-family: Arial, sans-serif; font-size: 18px; font-weight: 600; }
+      .label { fill: #ecf0f1; font-family: Arial, sans-serif; font-size: 17px; font-weight: 600; }
+      .small { fill: #c1cbd0; font-family: Arial, sans-serif; font-size: 15px; }
+      .bus-text { fill: #f3c889; font-family: Arial, sans-serif; font-size: 17px; font-weight: 600; }
+    </style>
+  </defs>
+  <rect class="canvas" width="1320" height="700" rx="18"/>
+  <text class="title" x="32" y="46">Audio: use a new bus number at each track boundary</text>
+
+  <rect class="track" x="28" y="78" width="370" height="585" rx="14"/>
+  <text class="track-label" x="53" y="114">TRACK A · STEREO SOURCE</text>
+  <rect class="device" x="55" y="170" width="315" height="84" rx="10"/>
+  <text class="label" x="74" y="204">Stereo source or Live audio</text>
+  <text class="small" x="74" y="230">Ordinary track channels 1–2</text>
+  <rect x="210" y="263" width="4" height="117" fill="#64c6bf"/>
+  <polygon points="212,380 204,366 220,366" fill="#64c6bf"/>
+  <rect class="device" x="55" y="394" width="315" height="106" rx="10"/>
+  <text class="label" x="74" y="428">s3g Bus Send 36</text>
+  <text class="small" x="74" y="456">STEREO 2 · CH 2 · SLOT 01</text>
+  <text class="small" x="74" y="480">BUS 01</text>
+  <text class="small" x="54" y="597">DRY KEEP = source also plays here</text>
+  <text class="small" x="54" y="624">BUS ONLY = no dry track output</text>
+
+  <rect class="track" x="474" y="78" width="370" height="585" rx="14"/>
+  <text class="track-label" x="499" y="114">TRACK B · ENCODER</text>
+  <rect class="device" x="501" y="164" width="315" height="84" rx="10"/>
+  <text class="label" x="520" y="197">s3g Bus Receive 36</text>
+  <text class="small" x="520" y="225">BUS 01 · MON OFF</text>
+  <rect x="656" y="257" width="4" height="36" fill="#64c6bf"/>
+  <polygon points="658,293 650,279 666,279" fill="#64c6bf"/>
+  <rect class="device" x="501" y="307" width="315" height="84" rx="10"/>
+  <text class="label" x="520" y="340">s3g Ambi Encoder Path</text>
+  <text class="small" x="520" y="367">Passes output to next device</text>
+  <rect x="656" y="400" width="4" height="15" fill="#64c6bf"/>
+  <polygon points="658,415 650,401 666,401" fill="#64c6bf"/>
+  <rect class="device" x="501" y="429" width="315" height="106" rx="10"/>
+  <text class="label" x="520" y="463">s3g Bus Send 36</text>
+  <text class="small" x="520" y="491">CHAIN 36 · CH 36 · SLOT 01</text>
+  <text class="small" x="520" y="515">BUS 02</text>
+
+  <rect class="track" x="920" y="78" width="370" height="585" rx="14"/>
+  <text class="track-label" x="945" y="114">TRACK C · DECODER AND MAIN</text>
+  <rect class="device" x="947" y="164" width="315" height="84" rx="10"/>
+  <text class="label" x="966" y="197">s3g Bus Receive 36</text>
+  <text class="small" x="966" y="225">BUS 02 · MON OFF</text>
+  <rect x="1102" y="257" width="4" height="36" fill="#64c6bf"/>
+  <polygon points="1104,293 1096,279 1112,279" fill="#64c6bf"/>
+  <rect class="device" x="947" y="307" width="315" height="84" rx="10"/>
+  <text class="label" x="966" y="340">s3g Ambi Decoder Speaker</text>
+  <text class="small" x="966" y="367">Choose speaker layout in editor</text>
+  <rect x="1102" y="400" width="4" height="15" fill="#64c6bf"/>
+  <polygon points="1104,415 1096,401 1112,401" fill="#64c6bf"/>
+  <rect class="endpoint" x="947" y="429" width="315" height="106" rx="10"/>
+  <text class="label" x="966" y="463">s3g Main Hardware Out 32</text>
+  <text class="small" x="966" y="491">Mono map + HARDWARE pairs</text>
+  <text class="small" x="966" y="515">Up to 32 decoded channels</text>
+  <rect x="1102" y="544" width="4" height="31" fill="#64c6bf"/>
+  <polygon points="1104,575 1096,561 1112,561" fill="#64c6bf"/>
+  <text class="small" x="995" y="611">Audio interface outputs</text>
+
+  <rect x="375" y="443" width="52" height="4" fill="#f3b966"/>
+  <rect x="423" y="206" width="4" height="239" fill="#f3b966"/>
+  <rect x="425" y="204" width="61" height="4" fill="#f3b966"/>
+  <polygon points="486,206 472,198 472,214" fill="#f3b966"/>
+  <rect x="399" y="325" width="68" height="31" rx="6" fill="#151a1e"/>
+  <text class="bus-text" x="405" y="345">BUS 01</text>
+  <rect x="821" y="480" width="52" height="4" fill="#f3b966"/>
+  <rect x="869" y="206" width="4" height="276" fill="#f3b966"/>
+  <rect x="871" y="204" width="61" height="4" fill="#f3b966"/>
+  <polygon points="932,206 918,198 918,214" fill="#f3b966"/>
+  <rect x="845" y="347" width="68" height="31" rx="6" fill="#151a1e"/>
+  <text class="bus-text" x="851" y="367">BUS 02</text>
+</svg>

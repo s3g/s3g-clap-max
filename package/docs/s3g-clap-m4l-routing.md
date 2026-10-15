@@ -1,5 +1,8 @@
 # s3g multichannel and Ambisonic routing for Max for Live
 
+For diagrams and a shorter first-use path, start with the
+[visual routing guide](s3g-clap-m4l-visual-guide.md).
+
 The installed Ambisonic wrappers are the **s3g Ambi …** devices. The only
 multichannel cross-track transport is **s3g Bus Send 36 / Bus Receive 36**;
 **s3g Main Hardware Out 32** is the separate hardware endpoint, and

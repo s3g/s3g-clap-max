@@ -75,7 +75,10 @@ Set stores the plugin's state, but the CLAP plugin must also be installed on
 the machine that reopens it. If a device appears but its plugin does not load,
 check the installed CLAP bundle and Max package before reinstalling the
 `.amxd` device. See the [Ableton Live setup guide](https://s3g.github.io/s3g-dsp/ableton-live.html)
-for a first-use routing example and troubleshooting.
+for a first-use routing example and troubleshooting. The
+[visual routing guide](package/docs/s3g-clap-m4l-visual-guide.md) shows the
+same-track MIDI, cross-track MIDI, multichannel audio, and hardware-output
+paths at a glance.
 
 ### Sample storage in Live
 
