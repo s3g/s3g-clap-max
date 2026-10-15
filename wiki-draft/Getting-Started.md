@@ -12,6 +12,8 @@ Windows, follow the
 Windows Max for Live support remains experimental. Restart Live after
 installation.
 
+For Max without Live, use [Standalone Max Setup](https://github.com/s3g/s3g-clap-max/wiki/Standalone-Max-Setup).
+
 ## Hear a first device
 
 1. In Live's browser, open **User Library → s3g CLAP**.

@@ -1,5 +1,7 @@
 [Home](https://github.com/s3g/s3g-clap-max/wiki)
 
+[Standalone Max Setup](https://github.com/s3g/s3g-clap-max/wiki/Standalone-Max-Setup)
+
 [Getting Started](https://github.com/s3g/s3g-clap-max/wiki/Getting-Started)
 
 [MIDI Routing](https://github.com/s3g/s3g-clap-max/wiki/MIDI-Routing)
