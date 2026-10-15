@@ -29,6 +29,15 @@ the `com.apple.quarantine` attribute from the verified, staged
 `s3g.clap~.mxo` bundle. It does not change global Gatekeeper settings or touch
 the separately installed s3g-dsp CLAP plugins.
 
+For a plugin opened by name, `s3g.clap~` recursively searches
+`~/Library/Audio/Plug-Ins/CLAP`, `/Library/Audio/Plug-Ins/CLAP`, and any
+existing directories in `CLAP_PATH` (colon-separated on macOS). Keep only one
+active copy of each s3g-dsp `.clap` bundle across those locations. Two copies
+with the same name cause an `ambiguous CLAP name` error; a saved Set may
+also recall an older copy by its stored path. Move old plugin backups outside
+all scanned roots, not merely into a renamed subfolder. Send `getpaths` to
+`s3g.clap~` in Max to list its effective search roots.
+
 For custom paths or a preflight, run the command from Terminal with
 `--dry-run`. Set `S3G_MAX_PACKAGE_ROOT` or `S3G_LIVE_DEVICE_ROOT` to locations
 ending in `s3g-clap-max` and `s3g CLAP` respectively. Use `--no-live` if you
@@ -59,9 +68,14 @@ files. Extract it and copy the complete `s3g-clap-max` folder into
 `%USERPROFILE%\Documents\Max 9\Packages\`. Copy its `devices\*.amxd`
 files to a real `s3g CLAP` folder inside Live's selected User Library. Put the
 complete s3g-dsp Windows CLAP collection under
-`%LOCALAPPDATA%\Programs\Common\CLAP\s3g-dsp`, keeping its `.clap` files
-beside the shared `Resources` folder; this is a per-user CLAP path searched by
-the Max host. Restart both applications and verify with a disposable Set.
+`%COMMONPROGRAMFILES%\CLAP\s3g-dsp` (usually
+`C:\Program Files\Common Files\CLAP\s3g-dsp` in Explorer), keeping its
+`.clap` files beside the shared `Resources` folder. Windows may ask for
+administrator permission; [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) describes
+a per-user alternative. Restart both applications and verify with a disposable
+Set.
 There is no Windows installer in the macOS release archive, and Windows Max
 for Live behavior still needs native validation. See
-[INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for detailed manual steps.
+[INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for detailed manual steps and the
+other Windows CLAP search paths; avoid leaving an older collection in any of
+them.

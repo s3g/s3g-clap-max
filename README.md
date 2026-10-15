@@ -44,12 +44,38 @@ Max and Live, extract it, and copy the complete `s3g-clap-max` folder to
 `%USERPROFILE%\Documents\Max 9\Packages\s3g-clap-max`. Copy its
 `devices\*.amxd` files into a real `s3g CLAP` folder in Live's User Library.
 Install the s3g-dsp Windows CLAPs separately under
-`%LOCALAPPDATA%\Programs\Common\CLAP\s3g-dsp`, keeping the `.clap` files
-and shared `Resources` folder together so the Max host can find them. Restart
-Max and Live, then test in a disposable Set. There is no Windows installer in
+`%COMMONPROGRAMFILES%\CLAP\s3g-dsp` (usually
+`C:\Program Files\Common Files\CLAP\s3g-dsp` in Explorer), keeping the
+`.clap` files and shared `Resources` folder together. Windows may ask for
+administrator permission; see the per-user alternative in
+[INSTALL-WINDOWS.md](INSTALL-WINDOWS.md). Restart Max and Live, then test in a
+disposable Set. There is no Windows installer in
 the macOS package; Windows Max for Live use remains experimental. See
 [INSTALL-WINDOWS.md](INSTALL-WINDOWS.md) for the complete manual steps and
 backup guidance.
+
+### Where `s3g.clap~` looks for plugins
+
+When a Max patch or Live wrapper opens a CLAP by name, `s3g.clap~` searches
+the existing directories in `CLAP_PATH` and these roots, including their
+subfolders:
+
+- **macOS:** `~/Library/Audio/Plug-Ins/CLAP` and
+  `/Library/Audio/Plug-Ins/CLAP` (`CLAP_PATH` entries are separated by `:`).
+- **Windows:** `%COMMONPROGRAMFILES%\CLAP` (recommended, all users) and
+  `%LOCALAPPDATA%\Programs\Common\CLAP` (per-user alternative inside the
+  normally hidden AppData folder). `CLAP_PATH` entries are separated by `;`.
+
+Keep only one active copy of each s3g-dsp `.clap` plugin across these search
+paths. If two copies match the same name, `s3g.clap~` reports
+`ambiguous CLAP name` with the matching paths instead of choosing one. A saved
+Live Set may also recall an older copy by its stored path. Before replacing
+plugins, quit Max and Live; move the old collection **outside** every scanned
+root and `CLAP_PATH` directory as a backup. Renaming a folder inside a
+scanned root does not remove its `.clap` files from the recursive scan. Send
+`getpaths` to `s3g.clap~` to see the search roots active in Max. See the
+[CLAP standard search paths](https://github.com/free-audio/clap/blob/main/include/clap/entry.h)
+for the platform conventions.
 
 ## Use in Max
 
