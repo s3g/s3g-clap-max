@@ -29,7 +29,7 @@ Relay's **MIDI OUT** and the bridge's **MIDI IN** use matching bus numbers:
 
 ![s3g Relay device in Live with MIDI OUT set to 01](images/screenshots/relay-midi-out-01.png)
 
-![s3g MIDI Bus to Live device in Live with MIDI IN set to 01](images/screenshots/midi-bus-to-live-in-01.png)
+![s3g MIDI Bus to Live in Live with MIDI IN 01 and MIDI CH 03 visible](images/screenshots/midi-bus-to-live-in-01.png)
 
 On one MIDI track, put **s3g Relay** or **s3g Tracker** before the instrument.
 Generated MIDI reaches that instrument directly. Changing **MIDI OUT** to
