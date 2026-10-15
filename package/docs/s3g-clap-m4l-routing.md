@@ -38,19 +38,23 @@ no bus or bridge is needed. To route across tracks:
 1. Place Relay or Tracker on its own MIDI track. Select **MIDI OUT = 01** (or
    another unused number) and make it generate notes.
 2. On the destination MIDI track, place **s3g MIDI Bus to Live** *before* the
-   Ableton instrument, then select **MIDI IN = 01** on the bridge. The bridge
-   is a Max MIDI Effect, not an instrument. Its default **OFF** receives no bus.
+   Ableton instrument, then select **MIDI IN = 01** on the bridge. Set
+   **MIDI CH** to **ALL** for every channel, or choose **01–16** to pass only
+   one channel from the private bus. The bridge is a Max MIDI Effect, not an
+   instrument. Its default **MIDI IN = OFF** receives no bus.
 3. Use Live's normal track monitoring to hear the destination instrument.
-   Incoming Live MIDI also passes through the bridge. Press **PANIC** if notes
-   remain held; switching the bridge bus also flushes held notes.
+   Incoming Live MIDI also passes through the bridge, unaffected by its
+   **MIDI CH** filter. Press **PANIC** if notes remain held; switching the
+   bridge bus or channel also flushes held bus notes.
 
 The bridge accepts channel-voice MIDI from Relay, Tracker, or the other s3g
 MIDI utilities. It ignores CLAP port numbers and sample offsets: the Max bus
 hop is scheduler-timed, not sample-accurate. The private bus preserves status
 bytes up to the bridge, but Live's own channel routing and the destination
 instrument determine whether MIDI channels remain distinct. Live's **MIDI
-From** chooser may tap before device-generated MIDI, so use the private bus
-bridge when the track chooser does not capture the generated output.
+From** channel chooser filters the track input, not events received by the
+bridge inside the device chain. Use the bridge's **MIDI CH** menu to filter
+private-bus events for an ordinary Live instrument.
 To record generated MIDI as a Live clip, route the bridge's post-effect MIDI
 into another track and record there; recording directly on the bridge track
 may capture only its pre-effect input.

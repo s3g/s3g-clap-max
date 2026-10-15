@@ -17,11 +17,11 @@
     "openrect": [
       0.0,
       0.0,
-      224.0,
+      342.0,
       169.0
     ],
     "openinpresentation": 1,
-    "devicewidth": 224.0,
+    "devicewidth": 342.0,
     "default_fontsize": 12.0,
     "default_fontface": 0,
     "default_fontname": "Arial",
@@ -50,8 +50,8 @@
     "toptoolbarpinned": 0,
     "righttoolbarpinned": 0,
     "bottomtoolbarpinned": 0,
-    "description": "Receive a private s3g MIDI bus from Relay, Tracker, or a MIDI utility and send its channel voice messages to the following Live instrument. Live MIDI passes through; PANIC releases held bus notes.",
-    "digest": "Receive a private s3g MIDI bus from Relay, Tracker, or a MIDI utility and send its channel voice messages to the following Live instrument. Live MIDI passes through; PANIC releases held bus notes.",
+    "description": "Receive a private s3g MIDI bus from Relay, Tracker, or a MIDI utility and send its channel voice messages to the following Live instrument. MIDI CH filters only the private bus; ordinary Live MIDI passes through. PANIC releases held bus notes.",
+    "digest": "Receive a private s3g MIDI bus from Relay, Tracker, or a MIDI utility and send its channel voice messages to the following Live instrument. MIDI CH filters only the private bus; ordinary Live MIDI passes through. PANIC releases held bus notes.",
     "tags": "s3g MIDI bus receiver Live MIDI effect",
     "latency": 0,
     "minimum_live_version": "12.0",
@@ -62,16 +62,16 @@
           "id": "obj-ui-background",
           "maxclass": "panel",
           "patching_rect": [
-            1650.0,
+            1560.0,
             40.0,
-            224.0,
+            342.0,
             169.0
           ],
           "presentation": 1,
           "presentation_rect": [
             0.0,
             0.0,
-            224.0,
+            342.0,
             169.0
           ],
           "numinlets": 1,
@@ -348,6 +348,263 @@
       },
       {
         "box": {
+          "id": "obj-channel-label",
+          "maxclass": "comment",
+          "patching_rect": [
+            1000.0,
+            240.0,
+            58.0,
+            20.0
+          ],
+          "text": "MIDI CH",
+          "presentation": 1,
+          "presentation_rect": [
+            137.0,
+            10.0,
+            58.0,
+            20.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 0,
+          "outlettype": [],
+          "fontname": "Arial",
+          "fontsize": 11.0,
+          "textcolor": [
+            0.6,
+            0.6,
+            0.6,
+            1.0
+          ],
+          "annotation": "Filter private-bus MIDI by channel; ALL keeps every channel."
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-number",
+          "maxclass": "live.numbox",
+          "patching_rect": [
+            1000.0,
+            280.0,
+            54.0,
+            22.0
+          ],
+          "hidden": 1,
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            "float"
+          ],
+          "parameter_enable": 1,
+          "activebgcolor": [
+            0.15294,
+            0.15294,
+            0.15294,
+            1.0
+          ],
+          "activetextcolor": [
+            0.72,
+            0.72,
+            0.72,
+            1.0
+          ],
+          "bgcolor": [
+            0.15294,
+            0.15294,
+            0.15294,
+            1.0
+          ],
+          "bordercolor": [
+            0.28,
+            0.28,
+            0.28,
+            1.0
+          ],
+          "focusbordercolor": [
+            0.65,
+            0.65,
+            0.65,
+            1.0
+          ],
+          "textcolor": [
+            0.6,
+            0.6,
+            0.6,
+            1.0
+          ],
+          "triangle": 1,
+          "tricolor": [
+            0.65,
+            0.65,
+            0.65,
+            1.0
+          ],
+          "fontname": "Arial",
+          "fontsize": 9.0,
+          "saved_attribute_attributes": {
+            "valueof": {
+              "parameter_longname": "s3g MIDI Channel Filter",
+              "parameter_shortname": "MIDI Ch",
+              "parameter_initial_enable": 1,
+              "parameter_initial": [
+                0
+              ],
+              "parameter_invisible": 0,
+              "parameter_mmin": 0,
+              "parameter_mmax": 16,
+              "parameter_steps": 17,
+              "parameter_modmode": 0,
+              "parameter_type": 1,
+              "parameter_unitstyle": 0
+            }
+          },
+          "varname": "channel_number"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-number-menu",
+          "maxclass": "umenu",
+          "patching_rect": [
+            1100.0,
+            280.0,
+            54.0,
+            20.0
+          ],
+          "presentation": 1,
+          "presentation_rect": [
+            198.0,
+            10.0,
+            54.0,
+            20.0
+          ],
+          "numinlets": 1,
+          "numoutlets": 3,
+          "outlettype": [
+            "int",
+            "",
+            ""
+          ],
+          "parameter_enable": 0,
+          "items": [
+            "ALL",
+            ",",
+            "01",
+            ",",
+            "02",
+            ",",
+            "03",
+            ",",
+            "04",
+            ",",
+            "05",
+            ",",
+            "06",
+            ",",
+            "07",
+            ",",
+            "08",
+            ",",
+            "09",
+            ",",
+            "10",
+            ",",
+            "11",
+            ",",
+            "12",
+            ",",
+            "13",
+            ",",
+            "14",
+            ",",
+            "15",
+            ",",
+            "16"
+          ],
+          "menumode": 0,
+          "arrow": 1,
+          "allowdrag": 0,
+          "applycolors": 1,
+          "bgfillcolor": [
+            0.2,
+            0.2,
+            0.2,
+            1.0
+          ],
+          "textcolor": [
+            0.74,
+            0.74,
+            0.74,
+            1.0
+          ],
+          "elementcolor": [
+            0.65,
+            0.65,
+            0.65,
+            1.0
+          ],
+          "fontname": "Arial",
+          "fontsize": 11.0,
+          "annotation": "Choose s3g midi channel filter from the menu.",
+          "annotation_name": "s3g MIDI Channel Filter"
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-number-menu-to-value",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1220.0,
+            340.0,
+            38.0,
+            22.0
+          ],
+          "text": "+ 0",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            "int"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-number-value-to-menu",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1320.0,
+            340.0,
+            38.0,
+            22.0
+          ],
+          "text": "- 0",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            "int"
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-number-menu-set",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1420.0,
+            340.0,
+            78.0,
+            22.0
+          ],
+          "text": "prepend set",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
           "id": "obj-panic-button",
           "maxclass": "live.text",
           "patching_rect": [
@@ -359,9 +616,9 @@
           "text": "PANIC",
           "presentation": 1,
           "presentation_rect": [
-            142.0,
+            263.0,
             10.0,
-            70.0,
+            67.0,
             20.0
           ],
           "texton": "PANIC",
@@ -532,6 +789,42 @@
       },
       {
         "box": {
+          "id": "obj-channel-replay-delay",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1000,
+            160,
+            75,
+            22.0
+          ],
+          "text": "delay 250",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-replay",
+          "maxclass": "message",
+          "patching_rect": [
+            1000,
+            210,
+            92,
+            22
+          ],
+          "text": "outputvalue",
+          "numinlets": 2,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
           "id": "obj-bus-change",
           "maxclass": "newobj",
           "patching_rect": [
@@ -554,6 +847,43 @@
           "maxclass": "newobj",
           "patching_rect": [
             400,
+            460,
+            52,
+            22.0
+          ],
+          "text": "t i b",
+          "numinlets": 1,
+          "numoutlets": 2,
+          "outlettype": [
+            "",
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-change",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1000,
+            400,
+            58,
+            22.0
+          ],
+          "text": "change",
+          "numinlets": 1,
+          "numoutlets": 1,
+          "outlettype": [
+            ""
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "obj-channel-switch",
+          "maxclass": "newobj",
+          "patching_rect": [
+            1000,
             460,
             52,
             22.0
@@ -724,11 +1054,11 @@
           "patching_rect": [
             1000,
             940,
-            345,
+            610,
             22.0
           ],
-          "text": "expr (($i1 >= 128) && ($i1 <= 239)) + (($i1 >= 192) && ($i1 <= 223))",
-          "numinlets": 1,
+          "text": "expr (((($i1 >= 128) && ($i1 <= 239)) + (($i1 >= 192) && ($i1 <= 223))) * (($i2 == 0) || ((($i1 % 16) + 1) == $i2)))",
+          "numinlets": 2,
           "numoutlets": 1,
           "outlettype": [
             ""
@@ -838,6 +1168,18 @@
       {
         "patchline": {
           "source": [
+            "obj-device",
+            0
+          ],
+          "destination": [
+            "obj-channel-replay-delay",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
             "obj-bus-replay-delay",
             0
           ],
@@ -862,6 +1204,30 @@
       {
         "patchline": {
           "source": [
+            "obj-channel-replay-delay",
+            0
+          ],
+          "destination": [
+            "obj-channel-replay",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-replay",
+            0
+          ],
+          "destination": [
+            "obj-channel-number",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
             "obj-bus-number-menu",
             0
           ],
@@ -915,6 +1281,66 @@
           ],
           "destination": [
             "obj-bus-number",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-number-menu",
+            0
+          ],
+          "destination": [
+            "obj-channel-number-menu-to-value",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-number",
+            0
+          ],
+          "destination": [
+            "obj-channel-number-value-to-menu",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-number-value-to-menu",
+            0
+          ],
+          "destination": [
+            "obj-channel-number-menu-set",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-number-menu-set",
+            0
+          ],
+          "destination": [
+            "obj-channel-number-menu",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-number-menu-to-value",
+            0
+          ],
+          "destination": [
+            "obj-channel-number",
             0
           ]
         }
@@ -927,6 +1353,18 @@
           ],
           "destination": [
             "obj-bus-change",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-number",
+            0
+          ],
+          "destination": [
+            "obj-channel-change",
             0
           ]
         }
@@ -939,6 +1377,18 @@
           ],
           "destination": [
             "obj-bus-switch",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-change",
+            0
+          ],
+          "destination": [
+            "obj-channel-switch",
             0
           ]
         }
@@ -952,6 +1402,30 @@
           "destination": [
             "obj-midi-flush",
             0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-switch",
+            1
+          ],
+          "destination": [
+            "obj-midi-flush",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "obj-channel-switch",
+            0
+          ],
+          "destination": [
+            "obj-status-length",
+            1
           ]
         }
       },
@@ -1176,6 +1650,11 @@
       "obj-bus-number": [
         "s3g MIDI Input Bus",
         "MIDI In",
+        0
+      ],
+      "obj-channel-number": [
+        "s3g MIDI Channel Filter",
+        "MIDI Ch",
         0
       ],
       "parameterbanks": {},

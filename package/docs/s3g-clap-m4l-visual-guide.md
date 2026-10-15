@@ -14,7 +14,7 @@ opening these devices. See the
 | What you want to do | Device order | Bus setting |
 | --- | --- | --- |
 | Play a Live instrument from Relay or Tracker on the same track | MIDI effect → Live instrument | **MIDI OUT** can stay **OFF** |
-| Play an instrument on another track | Relay or Tracker on one track; **s3g MIDI Bus to Live** → instrument on the other | Match sender **MIDI OUT** and bridge **MIDI IN** |
+| Play an instrument on another track | Relay or Tracker on one track; **s3g MIDI Bus to Live** → instrument on the other | Match sender **MIDI OUT** and bridge **MIDI IN**; optionally filter **MIDI CH** |
 | Feed a multichannel processor on another track | **s3g Bus Send 36** → **s3g Bus Receive 36** → processor | Match the audio **BUS** numbers |
 | Send decoded channels to interface outputs | Decoder or panner → **s3g Main Hardware Out 32** | Set Main's channel map and **HARDWARE** pairs |
 
@@ -37,8 +37,11 @@ Generated MIDI reaches that instrument directly. Changing **MIDI OUT** to
 
 For a different track, set the sender's **MIDI OUT** to a number such as **01**.
 Put **s3g MIDI Bus to Live** before the destination instrument and set its
-**MIDI IN** to **01**. The bridge also passes that track's ordinary incoming
-Live MIDI. If the sender has an instrument after it *and* sends to a second
+**MIDI IN** to **01**. Set **MIDI CH** to **ALL** for every channel, or select
+**01–16** to pass only that channel from the bus. The bridge also passes that
+track's ordinary incoming Live MIDI without applying this filter. Live's
+**MIDI From** channel chooser does not filter the private bus at this point.
+If the sender has an instrument after it *and* sends to a second
 track, both instruments can sound. Keep the sender on its own MIDI track when
 you want only the remote instrument.
 

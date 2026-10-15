@@ -147,9 +147,11 @@ For more detail and timing caveats, see
 
 For cross-track MIDI, put **s3g MIDI Bus to Live** before the destination
 instrument and select the sender's MIDI OUT number in the bridge's **MIDI IN**
-menu. The bridge merges private-bus MIDI with the track's incoming Live MIDI.
-**PANIC** releases held bus notes. No bridge is needed on the sender's own
-track.
+menu. Set **MIDI CH** to **ALL** (the default) or to one channel, **01–16**, to
+filter the private bus before it reaches a Live instrument. The bridge merges
+that bus with the track's incoming Live MIDI; **MIDI CH** does not filter the
+ordinary Live input. Changing the bus or channel releases held bus notes, and
+**PANIC** releases them manually. No bridge is needed on the sender's own track.
 
 Spectral Spray 2 is a normal stereo insert. Delay Field takes Live stereo input
 and puts its 16 outputs in multichannel chain slots 1–16. Follow it with
